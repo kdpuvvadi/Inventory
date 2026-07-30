@@ -1,0 +1,45 @@
+# Inventory Management — single PocketBase image (API + Vite UI in pb_public)
+#
+# Usage:
+#   cp .env.example .env
+#   docker compose up --build
+#
+# App:      http://localhost:8090
+# Admin UI: http://localhost:8090/_/
+
+name: inventory
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${PB_VERSION}
+        VITE_POCKETBASE_URL: ${VITE_POCKETBASE_URL:-}
+    image: ${INVENTORY_IMAGE:-inventory:local}
+    container_name: inventory
+    restart: unless-stopped
+    environment:
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@inventory.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-Admin123456!}
+      PB_HTTP_ADDR: 0.0.0.0:8090
+      PB_AUTO_IMPORT_SCHEMA: ${PB_AUTO_IMPORT_SCHEMA:-true}
+      PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
+      PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
+    volumes:
+      - pb_data:/usr/src/app/pb_data
+      # Optional: mount hooks without rebuilding
+      # - ./pocketbase/pb_hooks:/usr/src/app/pb_hooks:ro
+    ports:
+      - "${APP_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  pb_data:
+    name: inventory-pb-data

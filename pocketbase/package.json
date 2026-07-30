@@ -1,0 +1,12 @@
+{
+  "name": "inventory-pocketbase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.js",
+    "import-schema": "node import-schema.js"
+  },
+  "dependencies": {
+    "pocketbase": "^0.27.0"
+  }
+}

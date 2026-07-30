@@ -1,0 +1,9 @@
+# Build context is the repository root (see root Dockerfile).
+# Ignore local noise when building from pocketbase/ alone is unused.
+
+*
+!entrypoint.sh
+!pb_schema.json
+!import-schema.js
+!seed.js
+!package.json

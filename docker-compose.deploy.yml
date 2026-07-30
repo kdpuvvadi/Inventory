@@ -1,0 +1,35 @@
+# Deploy using a prebuilt image (e.g. from GHCR).
+# Usage:
+#   export INVENTORY_IMAGE=ghcr.io/OWNER/REPO:latest
+#   export PB_ADMIN_PASSWORD=change-me
+#   docker compose -f docker-compose.deploy.yml pull
+#   docker compose -f docker-compose.deploy.yml up -d
+
+name: inventory-deploy
+
+services:
+  app:
+    image: ${INVENTORY_IMAGE:?Set INVENTORY_IMAGE}
+    container_name: inventory
+    restart: unless-stopped
+    environment:
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@inventory.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:?Set PB_ADMIN_PASSWORD}
+      PB_HTTP_ADDR: 0.0.0.0:8090
+      PB_AUTO_IMPORT_SCHEMA: ${PB_AUTO_IMPORT_SCHEMA:-true}
+      PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
+      PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
+    volumes:
+      - pb_data:/usr/src/app/pb_data
+    ports:
+      - "${APP_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  pb_data:
+    name: inventory-pb-data

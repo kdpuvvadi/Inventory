@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# PocketBase runtime
+pocketbase/pb_data/
+pocketbase/pocketbase
+pocketbase/pocketbase.exe
+pocketbase/*.zip
+pocketbase/pb_schema.fixed.json
+
+# Docker
+*.log
+
+# IDE / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Coverage / cache
+coverage/
+.turbo/
+.cache/

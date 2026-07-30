@@ -1,0 +1,10 @@
+# PocketBase runtime data (database, uploads, logs)
+pb_data/
+
+# PocketBase binary (download per setup.md)
+pocketbase
+pocketbase.exe
+
+# Seed script dependencies (optional local install)
+node_modules/
+package-lock.json

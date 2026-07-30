@@ -1,0 +1,44 @@
+# Smoke tests for the single-container stack.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from smoke
+#
+# Note: shell vars in the command must use $$ so Compose does not interpolate them.
+
+services:
+  smoke:
+    image: curlimages/curl:8.12.1
+    container_name: inventory-smoke
+    depends_on:
+      app:
+        condition: service_healthy
+    network_mode: service:app
+    environment:
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@inventory.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-Admin123456!}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "Checking PocketBase API health..."
+        curl -fsS http://127.0.0.1:8090/api/health
+        echo
+        echo "Checking SPA index from pb_public..."
+        curl -fsS http://127.0.0.1:8090/ | grep -qi '<div id="root"'
+        echo "index.html OK"
+        echo "Checking collections were imported..."
+        AUTH_JSON=$$(curl -fsS -X POST \
+          http://127.0.0.1:8090/api/collections/_superusers/auth-with-password \
+          -H 'Content-Type: application/json' \
+          --data-binary "{\"identity\":\"$${PB_ADMIN_EMAIL}\",\"password\":\"$${PB_ADMIN_PASSWORD}\"}")
+        TOKEN=$$(printf '%s' "$$AUTH_JSON" | tr ',' '\n' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' | head -n1)
+        if [ -z "$$TOKEN" ]; then
+          echo "Failed to parse auth token from: $$AUTH_JSON" >&2
+          exit 1
+        fi
+        COLLECTIONS_JSON=$$(curl -fsS http://127.0.0.1:8090/api/collections \
+          -H "Authorization: $${TOKEN}")
+        printf '%s' "$$COLLECTIONS_JSON" | grep -q '"name":"products"'
+        printf '%s' "$$COLLECTIONS_JSON" | grep -q '"name":"inventory"'
+        printf '%s' "$$COLLECTIONS_JSON" | grep -q '"name":"manufacturers"'
+        echo "Required collections present (products, inventory, manufacturers)"
+        echo "Smoke tests passed."
