@@ -21,10 +21,10 @@ services:
     container_name: inventory
     restart: unless-stopped
     environment:
-      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@inventory.local}
-      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-Admin123456!}
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD}
       PB_HTTP_ADDR: 0.0.0.0:8090
-      PB_AUTO_IMPORT_SCHEMA: ${PB_AUTO_IMPORT_SCHEMA:-true}
+      PB_AUTO_IMPORT_SCHEMA: ${PB_AUTO_IMPORT_SCHEMA}
       PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
       PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
     volumes:

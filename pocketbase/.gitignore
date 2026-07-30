@@ -7,4 +7,3 @@ pocketbase.exe
 
 # Seed script dependencies (optional local install)
 node_modules/
-package-lock.json
