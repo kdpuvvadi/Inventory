@@ -15,7 +15,6 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: ${PB_VERSION}
         VITE_POCKETBASE_URL: ${VITE_POCKETBASE_URL:-}
     image: ${INVENTORY_IMAGE:-inventory:local}
     container_name: inventory
@@ -28,7 +27,7 @@ services:
       PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
       PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
     volumes:
-      - pb_data:/usr/src/app/pb_data
+      - ./pocketbase/pb_data:/usr/src/app/pb_data
       # Optional: mount hooks without rebuilding
       # - ./pocketbase/pb_hooks:/usr/src/app/pb_hooks:ro
     ports:
@@ -39,7 +38,3 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-
-volumes:
-  pb_data:
-    name: inventory-pb-data

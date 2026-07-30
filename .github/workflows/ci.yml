@@ -11,11 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-  PB_VERSION: "0.39.10"
-
 jobs:
   test:
     name: Test & build frontend
@@ -114,7 +109,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ env.PB_VERSION }}
             VITE_POCKETBASE_URL=
           cache-from: type=gha,scope=inventory
           cache-to: type=gha,mode=max,scope=inventory
