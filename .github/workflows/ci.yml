@@ -118,6 +118,4 @@ jobs:
             VITE_POCKETBASE_URL=
           cache-from: type=gha,scope=inventory
           cache-to: type=gha,mode=max,scope=inventory
-          platforms:
-            linux/amd64
-            linux/arm64
+          platforms: linux/amd64, linux/arm64
