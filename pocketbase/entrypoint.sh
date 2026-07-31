@@ -14,6 +14,7 @@ BOOTSTRAP_ADDR="127.0.0.1:8090"
 PB_URL="${PB_URL:-http://127.0.0.1:8090}"
 AUTO_IMPORT="${PB_AUTO_IMPORT_SCHEMA:-true}"
 AUTO_SEED="${PB_AUTO_SEED:-false}"
+CREATE_APP_USER="${APP_ADMIN_USER_CREATE:-true}"
 
 mkdir -p "$DATA_DIR" "$PUBLIC_DIR" "$HOOKS_DIR"
 
@@ -103,6 +104,11 @@ bootstrap_schema() {
   if [ "$AUTO_SEED" = "true" ]; then
     echo "Seeding sample data (PB_AUTO_SEED=true)..."
     node "$APP_DIR/scripts/seed.js" || echo "Seed failed (non-fatal)" >&2
+  fi
+
+  if [ "$CREATE_APP_USER" = "true" ]; then
+    echo "Creating app user (CREATE_APP_USER=true)..."
+    node "$APP_DIR/scripts/user.js" || echo "Failed to create app user (non-fatal)" >&2
   fi
 
   stop_bg
