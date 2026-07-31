@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { Loader2, Pencil } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router'
 
 import { BarcodeDisplay, QRCodeDisplay } from '@/components/barcode-display'
 import { ProductSerialsPanel } from '@/components/product-serials-panel'

@@ -3,7 +3,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { FolderKanban, Loader2, MoreHorizontal, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 
 import { DataTable } from '@/components/data-table/data-table'

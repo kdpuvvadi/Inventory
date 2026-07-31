@@ -1,7 +1,7 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'

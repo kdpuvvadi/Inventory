@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router'
 
 import { LoadingScreen } from '@/components/layout/loading-screen'
 import { useAuth } from '@/contexts/auth-context'

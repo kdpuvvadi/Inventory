@@ -3,7 +3,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowDownUp, Loader2, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 

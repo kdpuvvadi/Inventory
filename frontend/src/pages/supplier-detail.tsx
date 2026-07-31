@@ -1,7 +1,7 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowLeft, Package } from 'lucide-react'
 import { useMemo } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router'
 import type { RecordModel } from 'pocketbase'
 
 import { CompanyContactsPanel } from '@/components/company-contacts-panel'
