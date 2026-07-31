@@ -1,13 +1,7 @@
-# Inventory Management — single PocketBase image (API + Vite UI in pb_public)
-#
-# Usage:
-#   cp .env.example .env
-#   docker compose up --build
-#
-# App:      http://localhost:8090
-# Admin UI: http://localhost:8090/_/
-
 name: inventory
+
+volumes:
+  pb_data:
 
 services:
   app:
@@ -27,9 +21,7 @@ services:
       PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
       PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
     volumes:
-      - ./pocketbase/pb_data:/usr/src/app/pb_data
-      # Optional: mount hooks without rebuilding
-      # - ./pocketbase/pb_hooks:/usr/src/app/pb_hooks:ro
+      - pb_data:/usr/src/app/pb_data
     ports:
       - "${APP_PORT:-8090}:8090"
     healthcheck:
@@ -38,3 +30,4 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+

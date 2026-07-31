@@ -33,9 +33,9 @@ Inventory/
 ├── frontend/                 # React (Vite) source
 ├── pocketbase/               # Schema, seed, entrypoint
 ├── Dockerfile                # PocketBase + Vite → pb_public
-├── docker-compose.yml        # Local build & run (single service)
-├── docker-compose.test.yml   # Smoke tests
-├── docker-compose.deploy.yml # Deploy from GHCR
+├── composeyml        # Local build & run (single service)
+├── composetest.yml   # Smoke tests
+├── composedeploy.yml # Deploy from GHCR
 ├── .github/workflows/ci.yml
 ├── .env.example
 ├── spec.md
@@ -75,8 +75,8 @@ On first launch the container **imports `pb_schema.json` automatically** (create
 ### Smoke test
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from smoke
-docker compose -f docker-compose.yml -f docker-compose.test.yml down -v
+docker compose -f composeyml -f composetest.yml up --build --abort-on-container-exit --exit-code-from smoke
+docker compose -f composeyml -f composetest.yml down -v
 ```
 
 ### Deploy from published image
@@ -85,8 +85,8 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml down -v
 $env:INVENTORY_IMAGE="ghcr.io/<owner>/<repo>:latest"
 $env:PB_ADMIN_EMAIL="admin@inventory.local"
 $env:PB_ADMIN_PASSWORD="change-me"
-docker compose -f docker-compose.deploy.yml pull
-docker compose -f docker-compose.deploy.yml up -d
+docker compose -f composedeploy.yml pull
+docker compose -f composedeploy.yml up -d
 ```
 
 ### Image layout
@@ -207,7 +207,7 @@ VITE_POCKETBASE_URL=http://127.0.0.1:8090
 |---------|-------------|
 | `docker compose up --build` | Build and run (UI + API on `:8090`) |
 | `docker compose down -v` | Stop and remove volumes |
-| Compose + `docker-compose.test.yml` | Health + SPA smoke tests |
+| Compose + `composetest.yml` | Health + SPA smoke tests |
 
 ## Roles
 
