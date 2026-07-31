@@ -31,11 +31,7 @@ COPY --from=frontend /app/dist /usr/src/app/pb_public
 
 RUN cd /usr/src/app/scripts \
   && npm ci --omit=dev \
-  && chmod +x /usr/src/app/entrypoint.sh /usr/src/app/pocketbase \
-  && adduser -D -u 1000 -h /usr/src/app pbuser \
-  && chown -R pbuser:pbuser /usr/src/app
-
-USER pbuser
+  && chmod +x /usr/src/app/entrypoint.sh /usr/src/app/pocketbase 
 
 EXPOSE 8090
 VOLUME ["/usr/src/app/pb_data"]
