@@ -45,6 +45,8 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   inventory: 'Inventory',
   projects: 'Projects',
   'purchase-orders': 'Purchase Orders',
+  documents: 'Documents',
+  edit: 'Edit',
   transactions: 'Transactions',
   reports: 'Reports',
   manufacturing: 'Manufacturing',
@@ -111,7 +113,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:px-6">
       <Button
         variant="ghost"
         size="icon"

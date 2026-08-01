@@ -1,4 +1,6 @@
 import type {
+  DocumentStatus,
+  DocumentType,
   ProductStatus,
   ProjectStatus,
   PurchaseOrderStatus,
@@ -69,6 +71,22 @@ export const PO_STATUSES: LabeledOption<PurchaseOrderStatus>[] = [
   { value: 'partially_received', label: 'Partially Received' },
   { value: 'received', label: 'Received' },
   { value: 'cancelled', label: 'Cancelled' },
+]
+
+export const DOCUMENT_TYPES: LabeledOption<DocumentType>[] = [
+  { value: 'quotation', label: 'Quotation' },
+  { value: 'invoice', label: 'Invoice' },
+  { value: 'proforma_invoice', label: 'Proforma Invoice' },
+]
+
+export const DOCUMENT_STATUSES: LabeledOption<DocumentStatus>[] = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'sent', label: 'Sent' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'converted', label: 'Converted' },
 ]
 
 export const DEPARTMENT_PRESETS: LabeledOption[] = [

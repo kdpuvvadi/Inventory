@@ -4,8 +4,8 @@ const PB_URL = process.env.PB_URL || 'http://127.0.0.1:8090';
 const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD;
 
-const APP_USER_EMAIL = process.env.APP_USER_EMAIL || 'admin@company.com';
-const APP_USER_PASSWORD = process.env.APP_USER_PASSWORD || 'Admin123456!';
+const APP_USER_EMAIL = process.env.APP_USER_EMAIL;
+const APP_USER_PASSWORD = process.env.APP_USER_PASSWORD;
 
 const pb = new PocketBase(PB_URL);
 pb.autoCancellation(false);

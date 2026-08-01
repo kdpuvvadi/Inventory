@@ -59,9 +59,23 @@ async function main() {
     'company_name != ""',
     {
       company_name: 'Acme Inventory Co.',
+      site_name: 'Acme Inventory',
       currency: 'USD',
       low_stock_threshold: 10,
       theme_default: 'light',
+      company_address: '100 Industrial Park Drive, Suite 1',
+      company_email: 'billing@acme.local',
+      company_phone: '+1 555 0100',
+      gst_number: '',
+      default_tax_rate: 0,
+      quotation_prefix: 'QT-',
+      invoice_prefix: 'INV-',
+      proforma_prefix: 'PI-',
+      header_show_logo: true,
+      header_show_address: true,
+      header_show_email: true,
+      header_show_phone: true,
+      header_show_gst: true,
     }
   );
   console.log('App settings:', settings.id);

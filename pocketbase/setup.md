@@ -116,9 +116,18 @@ Or use the seed script (step 6), which creates this user automatically.
 | Field | Example value |
 |---|---|
 | `company_name` | Acme Inventory Co. |
+| `site_name` | Acme Inventory |
 | `currency` | USD |
 | `low_stock_threshold` | 10 |
 | `theme_default` | light |
+| `company_address` | 100 Industrial Park Drive |
+| `company_email` | billing@acme.local |
+| `company_phone` | +1 555 0100 |
+| `gst_number` | (optional) |
+| `default_tax_rate` | 18 |
+| `quotation_prefix` | QT- |
+| `invoice_prefix` | INV- |
+| `proforma_prefix` | PI- |
 
 The seed script also creates this record.
 

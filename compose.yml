@@ -20,6 +20,9 @@ services:
       PB_AUTO_IMPORT_SCHEMA: ${PB_AUTO_IMPORT_SCHEMA}
       PB_AUTO_SEED: ${PB_AUTO_SEED:-false}
       PB_FORCE_SCHEMA_IMPORT: ${PB_FORCE_SCHEMA_IMPORT:-false}
+      APP_ADMIN_USER_CREATE: ${APP_ADMIN_USER_CREATE:-true}
+      APP_USER_EMAIL: ${APP_USER_EMAIL}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
     volumes:
       - pb_data:/usr/src/app/pb_data
     ports:

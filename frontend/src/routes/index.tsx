@@ -7,6 +7,9 @@ import CategoryDetailPage from '@/pages/category-detail'
 import CustomerDetailPage from '@/pages/customer-detail'
 import CustomersPage from '@/pages/customers'
 import DashboardPage from '@/pages/dashboard'
+import DocumentDetailPage from '@/pages/document-detail'
+import DocumentFormPage from '@/pages/document-form'
+import DocumentsPage from '@/pages/documents'
 import InventoryPage from '@/pages/inventory'
 import LoginPage from '@/pages/login'
 import ManufacturerDetailPage from '@/pages/manufacturer-detail'
@@ -68,6 +71,10 @@ export const router = createBrowserRouter([
         path: 'purchase-orders/:id',
         element: <PurchaseOrderDetailPage />,
       },
+      { path: 'documents', element: <DocumentsPage /> },
+      { path: 'documents/new', element: <DocumentFormPage /> },
+      { path: 'documents/:id/edit', element: <DocumentFormPage /> },
+      { path: 'documents/:id', element: <DocumentDetailPage /> },
       { path: 'transactions', element: <TransactionsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'manufacturing', element: <ManufacturingPage /> },

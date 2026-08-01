@@ -206,9 +206,61 @@ export const contactSchema = z.object({
 
 export const settingsSchema = z.object({
   company_name: z.string().min(1, 'Company name is required'),
+  site_name: z.string().optional(),
   currency: z.string().min(1, 'Currency is required'),
   low_stock_threshold: z.coerce.number().min(0, 'Threshold must be non-negative'),
   theme_default: z.enum(['light', 'dark', 'system']),
+  company_address: z.string().optional(),
+  company_email: z.string().email('Invalid email').optional().or(z.literal('')),
+  company_phone: z.string().optional(),
+  gst_number: z.string().optional(),
+  default_tax_rate: z.coerce.number().min(0).max(100).optional(),
+  quotation_prefix: z.string().optional(),
+  invoice_prefix: z.string().optional(),
+  proforma_prefix: z.string().optional(),
+  header_show_logo: z.boolean().optional(),
+  header_show_address: z.boolean().optional(),
+  header_show_email: z.boolean().optional(),
+  header_show_phone: z.boolean().optional(),
+  header_show_gst: z.boolean().optional(),
+})
+
+export const documentLineItemSchema = z.object({
+  product: z.string().optional(),
+  description: z.string().min(1, 'Description is required'),
+  part_number: z.string().optional(),
+  hsn_code: z.string().optional(),
+  quantity: z.coerce.number().min(0.01, 'Quantity must be greater than zero'),
+  unit_price: z.coerce.number().min(0, 'Unit price must be non-negative'),
+  discount_percent: z.coerce.number().min(0).max(100),
+  tax_percent: z.coerce.number().min(0).max(100),
+  save_as_product: z.boolean().optional(),
+})
+
+export const salesDocumentSchema = z.object({
+  document_number: z.string().min(1, 'Document number is required'),
+  type: z.enum(['quotation', 'invoice', 'proforma_invoice']),
+  status: z.enum([
+    'draft',
+    'sent',
+    'accepted',
+    'rejected',
+    'paid',
+    'cancelled',
+    'converted',
+  ]),
+  customer: z.string().min(1, 'Customer is required'),
+  issue_date: z.string().min(1, 'Issue date is required'),
+  due_date: z.string().optional(),
+  currency: z.string().optional(),
+  discount_percent: z.coerce.number().min(0).max(100),
+  tax_percent: z.coerce.number().min(0).max(100),
+  billing_address: z.string().optional(),
+  reference: z.string().optional(),
+  notes: z.string().optional(),
+  line_items: z
+    .array(documentLineItemSchema)
+    .min(1, 'At least one line item is required'),
 })
 
 export const profileSchema = z.object({
@@ -236,3 +288,5 @@ export type ProfileFormValues = z.infer<typeof profileSchema>
 export type DepartmentFormValues = z.infer<typeof departmentSchema>
 export type ContactFormValues = z.infer<typeof contactSchema>
 export type SerialFormValues = z.infer<typeof serialSchema>
+export type SalesDocumentFormValues = z.infer<typeof salesDocumentSchema>
+export type DocumentLineItemFormValues = z.infer<typeof documentLineItemSchema>

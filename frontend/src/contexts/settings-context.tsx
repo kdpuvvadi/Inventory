@@ -3,6 +3,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   type ReactNode,
 } from 'react'
@@ -11,6 +12,7 @@ import { useAuth } from '@/contexts/auth-context'
 import pb, { COLLECTIONS } from '@/lib/pocketbase'
 import { formatCurrency, normalizeCurrencyCode } from '@/lib/utils'
 import type { AppSettings } from '@/types'
+import { getSiteDisplayName } from '@/utils/documents'
 
 export const SETTINGS_QUERY_KEY = ['app-settings'] as const
 
@@ -19,6 +21,9 @@ const DEFAULT_CURRENCY = 'USD'
 interface SettingsContextValue {
   settings: AppSettings | null
   currency: string
+  siteName: string
+  companyName: string
+  logoUrl: string | null
   isLoading: boolean
   formatMoney: (amount: number) => string
   refreshSettings: () => Promise<void>
@@ -43,6 +48,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   })
 
   const currency = normalizeCurrencyCode(settings?.currency || DEFAULT_CURRENCY)
+  const siteName = getSiteDisplayName(settings)
+  const companyName = settings?.company_name?.trim() || siteName
+
+  const logoUrl = useMemo(() => {
+    if (!settings?.company_logo) return null
+    try {
+      return pb.files.getURL(settings, settings.company_logo)
+    } catch {
+      return null
+    }
+  }, [settings])
 
   const formatMoney = useCallback(
     (amount: number) => formatCurrency(amount, currency),
@@ -53,15 +69,35 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY })
   }, [queryClient])
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      document.title = 'Inventory Management'
+      return
+    }
+    document.title = siteName
+  }, [isAuthenticated, siteName])
+
   const value = useMemo(
     () => ({
       settings,
       currency,
+      siteName,
+      companyName,
+      logoUrl,
       isLoading,
       formatMoney,
       refreshSettings,
     }),
-    [settings, currency, isLoading, formatMoney, refreshSettings],
+    [
+      settings,
+      currency,
+      siteName,
+      companyName,
+      logoUrl,
+      isLoading,
+      formatMoney,
+      refreshSettings,
+    ],
   )
 
   return (

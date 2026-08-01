@@ -39,4 +39,6 @@ export const COLLECTIONS = {
   DEPARTMENTS: 'departments',
   CONTACTS: 'contacts',
   PRODUCT_SERIALS: 'product_serials',
+  DOCUMENTS: 'documents',
+  DOCUMENT_ITEMS: 'document_items',
 } as const

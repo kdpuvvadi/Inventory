@@ -2512,6 +2512,195 @@
         "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_sitename_as",
+        "max": 0,
+        "min": 0,
+        "name": "site_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_logo_as01",
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/svg+xml",
+          "image/webp",
+          "image/gif"
+        ],
+        "name": "company_logo",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": [
+          "100x100",
+          "200x200"
+        ],
+        "type": "file"
+      },
+      {
+        "convertUrls": false,
+        "hidden": false,
+        "id": "field_address_as1",
+        "maxSize": 0,
+        "name": "company_address",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "editor"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_email_as01",
+        "max": 0,
+        "min": 0,
+        "name": "company_email",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "email"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_phone_as01",
+        "max": 0,
+        "min": 0,
+        "name": "company_phone",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_gst_as0001",
+        "max": 0,
+        "min": 0,
+        "name": "gst_number",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_taxrate_as1",
+        "max": null,
+        "min": 0,
+        "name": "default_tax_rate",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_qtprefixas",
+        "max": 0,
+        "min": 0,
+        "name": "quotation_prefix",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_invprefixas",
+        "max": 0,
+        "min": 0,
+        "name": "invoice_prefix",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_piprefixas",
+        "max": 0,
+        "min": 0,
+        "name": "proforma_prefix",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_hdrlogo_as",
+        "name": "header_show_logo",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "field_hdraddr_as",
+        "name": "header_show_address",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "field_hdremailas",
+        "name": "header_show_email",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "field_hdrphoneas",
+        "name": "header_show_phone",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "field_hdrgst_as",
+        "name": "header_show_gst",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
         "hidden": false,
         "id": "autodate2990389176",
         "name": "created",
@@ -2964,6 +3153,482 @@
       "CREATE UNIQUE INDEX `idx_product_serial_unique` ON `product_serials` (`product`, `serial`)",
       "CREATE INDEX `idx_product_serials_product` ON `product_serials` (`product`)",
       "CREATE INDEX `idx_product_serials_status` ON `product_serials` (`status`)"
+    ]
+  },
+  {
+    "id": "_pbc_documents01",
+    "name": "documents",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\" && @request.auth.role != \"read_only\"",
+    "updateRule": "@request.auth.id != \"\" && @request.auth.role != \"read_only\"",
+    "deleteRule": "@request.auth.id != \"\" && (@request.auth.role = \"administrator\" || @request.auth.role = \"inventory_manager\" || @request.auth.role = \"sales\")",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_doc_number1",
+        "max": 0,
+        "min": 0,
+        "name": "document_number",
+        "pattern": "",
+        "presentable": true,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_type01",
+        "maxSelect": 1,
+        "name": "type",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "quotation",
+          "invoice",
+          "proforma_invoice"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_status1",
+        "maxSelect": 1,
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "draft",
+          "sent",
+          "accepted",
+          "rejected",
+          "paid",
+          "cancelled",
+          "converted"
+        ]
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pbc_customer01",
+        "hidden": false,
+        "id": "field_doc_cust01",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "customer",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "name"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_issuedt",
+        "max": "",
+        "min": "",
+        "name": "issue_date",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_duedate",
+        "max": "",
+        "min": "",
+        "name": "due_date",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_doc_curr01",
+        "max": 0,
+        "min": 0,
+        "name": "currency",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_disc01",
+        "max": null,
+        "min": 0,
+        "name": "discount_percent",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_taxr01",
+        "max": null,
+        "min": 0,
+        "name": "tax_percent",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_subtot",
+        "max": null,
+        "min": null,
+        "name": "subtotal",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_discam",
+        "max": null,
+        "min": null,
+        "name": "discount_amount",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_taxamt",
+        "max": null,
+        "min": null,
+        "name": "tax_amount",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_total1",
+        "max": null,
+        "min": null,
+        "name": "total",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "convertUrls": false,
+        "hidden": false,
+        "id": "field_doc_billad",
+        "maxSize": 0,
+        "name": "billing_address",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "editor"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_doc_ref001",
+        "max": 0,
+        "min": 0,
+        "name": "reference",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "convertUrls": false,
+        "hidden": false,
+        "id": "field_doc_notes1",
+        "maxSize": 0,
+        "name": "notes",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "editor"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pbc_documents01",
+        "hidden": false,
+        "id": "field_doc_source",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "source_document",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "document_number"
+        ]
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pbc_documents01",
+        "hidden": false,
+        "id": "field_doc_convto",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "converted_to",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "document_number"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_documents_number` ON `documents` (`document_number`)",
+      "CREATE INDEX `idx_documents_type` ON `documents` (`type`)",
+      "CREATE INDEX `idx_documents_status` ON `documents` (`status`)"
+    ]
+  },
+  {
+    "id": "_pbc_docitems01",
+    "name": "document_items",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\" && @request.auth.role != \"read_only\"",
+    "updateRule": "@request.auth.id != \"\" && @request.auth.role != \"read_only\"",
+    "deleteRule": "@request.auth.id != \"\" && (@request.auth.role = \"administrator\" || @request.auth.role = \"inventory_manager\" || @request.auth.role = \"sales\")",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pbc_documents01",
+        "hidden": false,
+        "id": "field_di_doc001",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "document",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "document_number"
+        ]
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pbc_products01",
+        "hidden": false,
+        "id": "field_di_prod01",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "product",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "name"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_di_desc01",
+        "max": 0,
+        "min": 0,
+        "name": "description",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_di_part01",
+        "max": 0,
+        "min": 0,
+        "name": "part_number",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_di_hsn001",
+        "max": 0,
+        "min": 0,
+        "name": "hsn_code",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_di_qty001",
+        "max": null,
+        "min": 0,
+        "name": "quantity",
+        "onlyInt": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_di_price1",
+        "max": null,
+        "min": 0,
+        "name": "unit_price",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_di_disc01",
+        "max": null,
+        "min": 0,
+        "name": "discount_percent",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_di_tax001",
+        "max": null,
+        "min": 0,
+        "name": "tax_percent",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "field_di_line01",
+        "max": null,
+        "min": null,
+        "name": "line_total",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_document_items_document` ON `document_items` (`document`)"
     ]
   }
 ]

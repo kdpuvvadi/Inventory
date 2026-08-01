@@ -1,20 +1,23 @@
-import { Badge, type BadgeProps } from '@/components/ui/badge'
+import type { BadgeProps } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import {
+  DOCUMENT_STATUSES,
   PO_STATUSES,
   PRODUCT_STATUSES,
   PROJECT_STATUSES,
   getLabel,
 } from '@/utils/constants'
 import type {
+  DocumentStatus,
   ProductStatus,
   ProjectStatus,
   PurchaseOrderStatus,
 } from '@/types'
 
-type StatusType = 'product' | 'project' | 'purchase_order'
+type StatusType = 'product' | 'project' | 'purchase_order' | 'document'
 
 interface StatusBadgeProps extends Omit<BadgeProps, 'variant'> {
-  status: ProductStatus | ProjectStatus | PurchaseOrderStatus
+  status: ProductStatus | ProjectStatus | PurchaseOrderStatus | DocumentStatus
   type: StatusType
 }
 
@@ -44,6 +47,16 @@ const PO_VARIANTS: Record<PurchaseOrderStatus, BadgeProps['variant']> = {
   cancelled: 'destructive',
 }
 
+const DOCUMENT_VARIANTS: Record<DocumentStatus, BadgeProps['variant']> = {
+  draft: 'outline',
+  sent: 'default',
+  accepted: 'success',
+  rejected: 'destructive',
+  paid: 'success',
+  cancelled: 'destructive',
+  converted: 'secondary',
+}
+
 function getStatusLabel(type: StatusType, status: string): string {
   switch (type) {
     case 'product':
@@ -52,6 +65,8 @@ function getStatusLabel(type: StatusType, status: string): string {
       return getLabel(PROJECT_STATUSES, status as ProjectStatus)
     case 'purchase_order':
       return getLabel(PO_STATUSES, status as PurchaseOrderStatus)
+    case 'document':
+      return getLabel(DOCUMENT_STATUSES, status as DocumentStatus)
     default:
       return status
   }
@@ -65,6 +80,8 @@ function getVariant(type: StatusType, status: string): BadgeProps['variant'] {
       return PROJECT_VARIANTS[status as ProjectStatus] ?? 'outline'
     case 'purchase_order':
       return PO_VARIANTS[status as PurchaseOrderStatus] ?? 'outline'
+    case 'document':
+      return DOCUMENT_VARIANTS[status as DocumentStatus] ?? 'outline'
     default:
       return 'outline'
   }

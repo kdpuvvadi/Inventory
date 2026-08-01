@@ -257,9 +257,69 @@ export interface BomItem extends BaseRecord {
 
 export interface AppSettings extends BaseRecord {
   company_name: string
+  site_name: string
   currency: string
   low_stock_threshold: number
   theme_default: 'light' | 'dark' | 'system'
+  company_logo: string
+  company_address: string
+  company_email: string
+  company_phone: string
+  gst_number: string
+  default_tax_rate: number
+  quotation_prefix: string
+  invoice_prefix: string
+  proforma_prefix: string
+  header_show_logo: boolean
+  header_show_address: boolean
+  header_show_email: boolean
+  header_show_phone: boolean
+  header_show_gst: boolean
+}
+
+export type DocumentType = 'quotation' | 'invoice' | 'proforma_invoice'
+
+export type DocumentStatus =
+  | 'draft'
+  | 'sent'
+  | 'accepted'
+  | 'rejected'
+  | 'paid'
+  | 'cancelled'
+  | 'converted'
+
+export interface SalesDocument extends BaseRecord {
+  document_number: string
+  type: DocumentType
+  status: DocumentStatus
+  customer: string
+  issue_date: string
+  due_date: string
+  currency: string
+  discount_percent: number
+  tax_percent: number
+  subtotal: number
+  discount_amount: number
+  tax_amount: number
+  total: number
+  billing_address: string
+  reference: string
+  notes: string
+  source_document: string
+  converted_to: string
+}
+
+export interface DocumentItem extends BaseRecord {
+  document: string
+  product: string
+  description: string
+  part_number: string
+  hsn_code: string
+  quantity: number
+  unit_price: number
+  discount_percent: number
+  tax_percent: number
+  line_total: number
 }
 
 export interface CategoryExpand {
@@ -316,6 +376,17 @@ export interface BomItemExpand {
   product?: Product
 }
 
+export interface SalesDocumentExpand {
+  customer?: Customer
+  source_document?: SalesDocument
+  converted_to?: SalesDocument
+}
+
+export interface DocumentItemExpand {
+  document?: SalesDocument
+  product?: Product
+}
+
 export type CategoryWithExpand = Category & { expand?: CategoryExpand }
 export type ProductWithExpand = Product & { expand?: ProductExpand }
 export type InventoryWithExpand = Inventory & { expand?: InventoryExpand }
@@ -333,6 +404,8 @@ export type StockTransactionWithExpand = StockTransaction & {
 export type AuditLogWithExpand = AuditLog & { expand?: AuditLogExpand }
 export type BomWithExpand = Bom & { expand?: BomExpand }
 export type BomItemWithExpand = BomItem & { expand?: BomItemExpand }
+export type SalesDocumentWithExpand = SalesDocument & { expand?: SalesDocumentExpand }
+export type DocumentItemWithExpand = DocumentItem & { expand?: DocumentItemExpand }
 
 export interface DepartmentWithExpand extends Department {
   expand?: { manufacturer?: Manufacturer; supplier?: Supplier; customer?: Customer }
@@ -382,6 +455,8 @@ export type CollectionName =
   | 'departments'
   | 'contacts'
   | 'product_serials'
+  | 'documents'
+  | 'document_items'
 
 export type CollectionRecordMap = {
   users: UserRecord
@@ -404,4 +479,6 @@ export type CollectionRecordMap = {
   departments: Department
   contacts: Contact
   product_serials: ProductSerial
+  documents: SalesDocument
+  document_items: DocumentItem
 }

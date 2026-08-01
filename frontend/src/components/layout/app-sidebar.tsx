@@ -1,5 +1,6 @@
 import { Package } from 'lucide-react'
 
+import { useSettings } from '@/contexts/settings-context'
 import { cn } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -12,6 +13,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ collapsed = false, className }: AppSidebarProps) {
+  const { siteName, logoUrl } = useSettings()
+
   return (
     <aside
       className={cn(
@@ -26,10 +29,18 @@ export function AppSidebar({ collapsed = false, className }: AppSidebarProps) {
           collapsed && 'justify-center px-2',
         )}
       >
-        <Package className="h-6 w-6 shrink-0 text-primary" />
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={siteName}
+            className="h-7 w-7 shrink-0 rounded object-contain"
+          />
+        ) : (
+          <Package className="h-6 w-6 shrink-0 text-primary" />
+        )}
         {!collapsed && (
-          <span className="ml-2 text-lg font-semibold tracking-tight">
-            Inventory
+          <span className="ml-2 truncate text-lg font-semibold tracking-tight">
+            {siteName}
           </span>
         )}
       </div>
@@ -41,7 +52,7 @@ export function AppSidebar({ collapsed = false, className }: AppSidebarProps) {
       <Separator />
       <div className={cn('p-4', collapsed && 'p-2')}>
         {!collapsed && (
-          <p className="text-xs text-muted-foreground">Inventory Management</p>
+          <p className="truncate text-xs text-muted-foreground">{siteName}</p>
         )}
       </div>
     </aside>

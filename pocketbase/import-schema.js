@@ -7,7 +7,7 @@
  *   PB_URL              default http://127.0.0.1:8090
  *   PB_ADMIN_EMAIL
  *   PB_ADMIN_PASSWORD
- *   PB_SCHEMA_PATH      default ../pb_schema.json relative to this file
+ *   PB_SCHEMA_PATH      default ./pb_schema.json relative to this file
  */
 import PocketBase from 'pocketbase'
 import { readFileSync, existsSync } from 'fs'
@@ -20,7 +20,7 @@ const PB_URL = process.env.PB_URL || 'http://127.0.0.1:8090'
 const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL
 const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD
 const SCHEMA_PATH = resolve(
-  process.env.PB_SCHEMA_PATH || resolve(__dirname, '../pb_schema.json'),
+  process.env.PB_SCHEMA_PATH || resolve(__dirname, 'pb_schema.json'),
 )
 
 if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
@@ -48,12 +48,31 @@ const hasContactModel =
   existing.some((c) => c.name === 'departments') &&
   existing.some((c) => c.name === 'contacts')
 const hasSerialModel = existing.some((c) => c.name === 'product_serials')
+const hasDocumentsModel =
+  existing.some((c) => c.name === 'documents') &&
+  existing.some((c) => c.name === 'document_items')
+const documentsCol = existing.find((c) => c.name === 'documents')
+const hasDocumentConversionFields = Boolean(
+  documentsCol?.fields?.some((f) => f.name === 'source_document') &&
+    documentsCol?.fields?.some((f) => f.name === 'converted_to'),
+)
 const productsCol = existing.find((c) => c.name === 'products')
+const settingsCol = existing.find((c) => c.name === 'app_settings')
 const hasTrackSerialsField = Boolean(
   productsCol?.fields?.some((f) => f.name === 'track_serials'),
 )
+const hasCompanyBrandingFields = Boolean(
+  settingsCol?.fields?.some((f) => f.name === 'company_logo') &&
+    settingsCol?.fields?.some((f) => f.name === 'site_name'),
+)
 const schemaComplete =
-  hasAppCollections && hasContactModel && hasSerialModel && hasTrackSerialsField
+  hasAppCollections &&
+  hasContactModel &&
+  hasSerialModel &&
+  hasTrackSerialsField &&
+  hasDocumentsModel &&
+  hasCompanyBrandingFields &&
+  hasDocumentConversionFields
 
 if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
   console.log(
@@ -67,7 +86,7 @@ if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
 
 if (hasAppCollections && !schemaComplete) {
   console.log(
-    'Existing install detected without serial tracking model — merging schema update...',
+    'Existing install detected — merging schema update (documents/branding/conversion)...',
   )
 }
 
