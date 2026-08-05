@@ -183,7 +183,7 @@ export default function DocumentFormPage() {
   const isEditing = Boolean(editId)
   const { settings, currency } = useSettings()
   const today = new Date().toISOString().slice(0, 10)
-  const defaultTax = settings?.default_tax_rate ?? 0
+  const defaultTax = settings?.default_tax_rate || 18
   const [hydrated, setHydrated] = useState(false)
   const [showDocDiscount, setShowDocDiscount] = useState(false)
   const [lineDiscountVisible, setLineDiscountVisible] = useState<
@@ -273,7 +273,7 @@ export default function DocumentFormPage() {
     if (watchedType === 'quotation') {
       form.setValue('tax_percent', 0)
     } else if ((form.getValues('tax_percent') || 0) === 0) {
-      form.setValue('tax_percent', settings?.default_tax_rate ?? defaultTax)
+      form.setValue('tax_percent', settings?.default_tax_rate || defaultTax)
     }
   }, [watchedType, settings, form, isEditing, hydrated, defaultTax])
 
@@ -281,7 +281,7 @@ export default function DocumentFormPage() {
     if (isEditing || !settings || hydrated) return
     form.setValue('currency', normalizeCurrencyCode(settings.currency || currency))
     if (form.getValues('type') !== 'quotation') {
-      form.setValue('tax_percent', settings.default_tax_rate ?? 0)
+      form.setValue('tax_percent', settings.default_tax_rate || 18)
     }
   }, [settings, currency, form, isEditing, hydrated])
 
@@ -309,7 +309,9 @@ export default function DocumentFormPage() {
       ),
       discount_percent: storedDiscountPct,
       tax_percent:
-        existingDoc.type === 'quotation' ? 0 : existingDoc.tax_percent || 0,
+        existingDoc.type === 'quotation'
+          ? 0
+          : existingDoc.tax_percent || defaultTax,
       billing_address: stripHtml(existingDoc.billing_address) || '',
       billing_state: existingDoc.billing_state || '',
       billing_pincode: existingDoc.billing_pincode || '',
@@ -421,7 +423,9 @@ export default function DocumentFormPage() {
     try {
       const { line_items, ...docData } = values
       const isQuote = docData.type === 'quotation'
-      const taxPercent = isQuote ? 0 : Number(docData.tax_percent) || 0
+      const taxPercent = isQuote
+        ? 0
+        : Number(docData.tax_percent) || defaultTax
       // Persist exactly what is in the form. Hidden/removed discount is forced to 0 above.
       const discountPercentValue = Math.max(
         0,

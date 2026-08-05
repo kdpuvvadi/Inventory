@@ -48,8 +48,8 @@ export async function convertDocument(options: {
   const sourceLabel = getDocumentTypeLabel(source.type)
   const taxPercent =
     source.type === 'quotation'
-      ? settings?.default_tax_rate || 0
-      : source.tax_percent || 0
+      ? settings?.default_tax_rate || 18
+      : source.tax_percent || 18
 
   let subtotal = source.subtotal || 0
   let discountAmount = source.discount_amount || 0

@@ -69,7 +69,7 @@ async function main() {
       company_email: 'billing@acme.local',
       company_phone: '+1 555 0100',
       gst_number: '',
-      default_tax_rate: 0,
+      default_tax_rate: 18,
       quotation_prefix: 'QT-',
       invoice_prefix: 'INV-',
       proforma_prefix: 'PI-',
