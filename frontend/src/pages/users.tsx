@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { KeyRound, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -66,6 +66,16 @@ const baseUserFields = z.object({
   ]),
 })
 
+const passwordFields = z
+  .object({
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    passwordConfirm: z.string().min(8, 'Please confirm password'),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: 'Passwords do not match',
+    path: ['passwordConfirm'],
+  })
+
 const createUserSchema = baseUserFields
   .extend({
     password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -77,9 +87,11 @@ const createUserSchema = baseUserFields
   })
 
 const editUserSchema = baseUserFields
+const changePasswordSchema = passwordFields
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>
 type EditUserFormValues = z.infer<typeof editUserSchema>
+type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth()
@@ -87,6 +99,7 @@ export default function UsersPage() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null)
+  const [passwordUser, setPasswordUser] = useState<UserRecord | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<UserRecord | null>(null)
 
   useRealtimeCollection(COLLECTIONS.USERS, USERS_QUERY_KEY)
@@ -113,6 +126,14 @@ export default function UsersPage() {
       email: '',
       name: '',
       role: 'read_only',
+    },
+  })
+
+  const passwordForm = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      password: '',
+      passwordConfirm: '',
     },
   })
 
@@ -150,6 +171,20 @@ export default function UsersPage() {
     onError: () => toast.error('Failed to update user'),
   })
 
+  const changePasswordMutation = useMutation({
+    mutationFn: (values: ChangePasswordFormValues & { id: string }) =>
+      pb.collection(COLLECTIONS.USERS).update(values.id, {
+        password: values.password,
+        passwordConfirm: values.passwordConfirm,
+      }),
+    onSuccess: () => {
+      toast.success('Password updated')
+      setPasswordUser(null)
+      passwordForm.reset()
+    },
+    onError: () => toast.error('Failed to update password'),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteRecord(COLLECTIONS.USERS, id),
     onSuccess: () => {
@@ -166,6 +201,14 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       role: user.role,
+    })
+  }
+
+  const openChangePassword = (user: UserRecord) => {
+    setPasswordUser(user)
+    passwordForm.reset({
+      password: '',
+      passwordConfirm: '',
     })
   }
 
@@ -202,7 +245,20 @@ export default function UsersPage() {
         const isSelf = row.original.id === currentUser?.id
         return (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Change password"
+              onClick={() => openChangePassword(row.original)}
+            >
+              <KeyRound className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Edit user"
+              onClick={() => openEdit(row.original)}
+            >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
@@ -434,6 +490,80 @@ export default function UsersPage() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(passwordUser)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPasswordUser(null)
+            passwordForm.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {passwordUser?.name} ({passwordUser?.email}).
+              The current password is not required.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...passwordForm}>
+            <form
+              onSubmit={passwordForm.handleSubmit((values) =>
+                passwordUser &&
+                changePasswordMutation.mutate({ ...values, id: passwordUser.id }),
+              )}
+              className="space-y-4"
+            >
+              <FormField
+                control={passwordForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="passwordConfirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setPasswordUser(null)
+                    passwordForm.reset()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={changePasswordMutation.isPending}>
+                  {changePasswordMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Update Password
                 </Button>
               </DialogFooter>
             </form>
