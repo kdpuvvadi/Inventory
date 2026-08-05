@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header'
 import { PageHeader } from '@/components/layout/page-header'
+import { StateSelect } from '@/components/state-select'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,6 +49,8 @@ const defaultValues: CustomerFormValues = {
   email: '',
   phone: '',
   address: '',
+  state: '',
+  pincode: '',
   notes: '',
 }
 
@@ -85,6 +88,8 @@ export default function CustomersPage() {
         email: editingRecord.email ?? '',
         phone: editingRecord.phone ?? '',
         address: editingRecord.address ?? '',
+        state: editingRecord.state ?? '',
+        pincode: editingRecord.pincode ?? '',
         notes: editingRecord.notes ?? '',
       })
     } else {
@@ -342,12 +347,42 @@ export default function CustomersPage() {
                   <FormItem>
                     <FormLabel>Address</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Address" rows={2} {...field} />
+                      <Textarea placeholder="Street, City" rows={2} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <StateSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Pincode" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="notes"

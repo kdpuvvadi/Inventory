@@ -64,6 +64,8 @@ async function main() {
       low_stock_threshold: 10,
       theme_default: 'light',
       company_address: '100 Industrial Park Drive, Suite 1',
+      company_state: '',
+      company_pincode: '',
       company_email: 'billing@acme.local',
       company_phone: '+1 555 0100',
       gst_number: '',

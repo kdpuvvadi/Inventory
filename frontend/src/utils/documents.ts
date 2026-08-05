@@ -1,4 +1,4 @@
-import type { AppSettings, DocumentType } from '@/types'
+import type { AppSettings, DocumentType, GstType } from '@/types'
 import { normalizeCurrencyCode } from '@/lib/utils'
 import { getLabel, DOCUMENT_TYPES } from '@/utils/constants'
 
@@ -6,62 +6,98 @@ export interface LineCalcInput {
   quantity: number
   unit_price: number
   discount_percent?: number
-  tax_percent?: number
 }
 
 export interface LineCalcResult {
   gross: number
   discountAmount: number
   taxable: number
-  taxAmount: number
   lineTotal: number
 }
 
 export interface DocumentTotals {
   subtotal: number
   discountAmount: number
+  taxableAmount: number
   taxAmount: number
   total: number
+}
+
+export interface GstBreakdown {
+  gstType: GstType
+  cgst: number
+  sgst: number
+  igst: number
 }
 
 export function calcLineTotals(item: LineCalcInput): LineCalcResult {
   const qty = Number(item.quantity) || 0
   const price = Number(item.unit_price) || 0
   const discountPct = Number(item.discount_percent) || 0
-  const taxPct = Number(item.tax_percent) || 0
 
   const gross = qty * price
   const discountAmount = (gross * discountPct) / 100
   const taxable = gross - discountAmount
-  const taxAmount = (taxable * taxPct) / 100
-  const lineTotal = taxable + taxAmount
+  // Line total is pre-tax; document-level tax is applied after all lines.
+  const lineTotal = taxable
 
-  return { gross, discountAmount, taxable, taxAmount, lineTotal }
+  return { gross, discountAmount, taxable, lineTotal }
 }
 
 export function calcDocumentTotals(
   items: LineCalcInput[],
   documentDiscountPercent = 0,
+  documentTaxPercent = 0,
 ): DocumentTotals {
   const lines = items.map(calcLineTotals)
-  const subtotal = lines.reduce((sum, line) => sum + line.gross, 0)
-  const lineDiscounts = lines.reduce((sum, line) => sum + line.discountAmount, 0)
-  const afterLineDiscount = lines.reduce((sum, line) => sum + line.taxable, 0)
-  const docDiscount = (afterLineDiscount * (Number(documentDiscountPercent) || 0)) / 100
-  const taxable = afterLineDiscount - docDiscount
-  const taxRatio =
-    afterLineDiscount > 0
-      ? lines.reduce((sum, line) => sum + line.taxAmount, 0) / afterLineDiscount
-      : 0
-  const taxAmount = taxable * taxRatio
-  const total = taxable + taxAmount
+  // Subtotal is the sum of line amounts (after any per-line discounts).
+  const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0)
+  // Totals "Discount" is document-level only; line discounts already reduce line amounts.
+  const discountAmount =
+    (subtotal * (Number(documentDiscountPercent) || 0)) / 100
+  const taxableAmount = subtotal - discountAmount
+  const taxAmount = (taxableAmount * (Number(documentTaxPercent) || 0)) / 100
+  const total = taxableAmount + taxAmount
 
   return {
     subtotal,
-    discountAmount: lineDiscounts + docDiscount,
+    discountAmount,
+    taxableAmount,
     taxAmount,
     total,
   }
+}
+
+export function resolveGstType(
+  companyState: string | null | undefined,
+  billingState: string | null | undefined,
+): GstType {
+  const company = (companyState || '').trim().toLowerCase()
+  const billing = (billingState || '').trim().toLowerCase()
+  if (!company || !billing) return 'cgst_sgst'
+  return company === billing ? 'cgst_sgst' : 'igst'
+}
+
+export function splitGstAmount(
+  taxAmount: number,
+  gstType: GstType | null | undefined,
+): GstBreakdown {
+  const amount = Number(taxAmount) || 0
+  const type: GstType = gstType === 'igst' ? 'igst' : 'cgst_sgst'
+  if (type === 'igst') {
+    return { gstType: type, cgst: 0, sgst: 0, igst: amount }
+  }
+  const half = Math.round((amount / 2) * 100) / 100
+  const cgst = half
+  const sgst = Math.round((amount - half) * 100) / 100
+  return { gstType: type, cgst, sgst, igst: 0 }
+}
+
+export function createShareToken(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
 export function getDocumentTypeLabel(type: DocumentType): string {
@@ -125,4 +161,19 @@ export function resolveDocumentCurrency(
   const fromDoc = documentCurrency?.trim()
   if (fromDoc) return normalizeCurrencyCode(fromDoc)
   return normalizeCurrencyCode(fallback)
+}
+
+export function formatAddressBlock(options: {
+  address?: string | null
+  state?: string | null
+  pincode?: string | null
+}): string {
+  const lines: string[] = []
+  const street = stripHtml(options.address)
+  if (street) lines.push(street)
+  const stateLine = [options.state?.trim(), options.pincode?.trim()]
+    .filter(Boolean)
+    .join(' - ')
+  if (stateLine) lines.push(stateLine)
+  return lines.join('\n')
 }

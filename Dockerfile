@@ -25,6 +25,7 @@ WORKDIR /usr/src/app
 
 COPY pocketbase/entrypoint.sh /usr/src/app/entrypoint.sh
 COPY pocketbase/pb_schema.json /usr/src/app/pb_schema.json
+COPY pocketbase/pb_hooks/ /usr/src/app/pb_hooks/
 COPY pocketbase/package.json pocketbase/package-lock.json /usr/src/app/scripts/
 COPY pocketbase/import-schema.js pocketbase/seed.js pocketbase/user.js /usr/src/app/scripts/
 COPY --from=frontend /app/dist /usr/src/app/pb_public

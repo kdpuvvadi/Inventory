@@ -7,7 +7,7 @@ PUBLIC_DIR="${PB_PUBLIC_DIR:-$APP_DIR/pb_public}"
 HOOKS_DIR="${PB_HOOKS_DIR:-$APP_DIR/pb_hooks}"
 SCHEMA_PATH="${PB_SCHEMA_PATH:-$APP_DIR/pb_schema.json}"
 MARKER="$DATA_DIR/.schema_imported"
-SCHEMA_VERSION_MARKER="$DATA_DIR/.schema_v3"
+SCHEMA_VERSION_MARKER="$DATA_DIR/.schema_v4"
 HTTP_ADDR="${PB_HTTP_ADDR:-0.0.0.0:8090}"
 # Bootstrap always binds locally so import can reach the API before publish.
 BOOTSTRAP_ADDR="127.0.0.1:8090"
@@ -72,7 +72,7 @@ bootstrap_schema() {
   fi
 
   if [ -f "$SCHEMA_VERSION_MARKER" ] && [ "${PB_FORCE_SCHEMA_IMPORT:-false}" != "true" ]; then
-    echo "Schema v3 already imported (marker present). Skipping."
+    echo "Schema v4 already imported (marker present). Skipping."
     return 0
   fi
 

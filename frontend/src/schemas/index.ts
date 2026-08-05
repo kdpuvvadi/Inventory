@@ -33,6 +33,8 @@ export const customerSchema = z.object({
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional(),
   notes: z.string().optional(),
 })
 
@@ -211,6 +213,8 @@ export const settingsSchema = z.object({
   low_stock_threshold: z.coerce.number().min(0, 'Threshold must be non-negative'),
   theme_default: z.enum(['light', 'dark', 'system']),
   company_address: z.string().optional(),
+  company_state: z.string().optional(),
+  company_pincode: z.string().optional(),
   company_email: z.string().email('Invalid email').optional().or(z.literal('')),
   company_phone: z.string().optional(),
   gst_number: z.string().optional(),
@@ -233,7 +237,7 @@ export const documentLineItemSchema = z.object({
   quantity: z.coerce.number().min(0.01, 'Quantity must be greater than zero'),
   unit_price: z.coerce.number().min(0, 'Unit price must be non-negative'),
   discount_percent: z.coerce.number().min(0).max(100),
-  tax_percent: z.coerce.number().min(0).max(100),
+  tax_percent: z.coerce.number().min(0).max(100).optional(),
   save_as_product: z.boolean().optional(),
 })
 
@@ -256,6 +260,8 @@ export const salesDocumentSchema = z.object({
   discount_percent: z.coerce.number().min(0).max(100),
   tax_percent: z.coerce.number().min(0).max(100),
   billing_address: z.string().optional(),
+  billing_state: z.string().optional(),
+  billing_pincode: z.string().optional(),
   reference: z.string().optional(),
   notes: z.string().optional(),
   line_items: z

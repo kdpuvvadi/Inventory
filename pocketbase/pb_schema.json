@@ -611,6 +611,34 @@
         "type": "editor"
       },
       {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_state_cus01",
+        "max": 0,
+        "min": 0,
+        "name": "state",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_pincode_cus",
+        "max": 0,
+        "min": 0,
+        "name": "pincode",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
         "convertUrls": false,
         "hidden": false,
         "id": "field_notes_cus01",
@@ -2562,6 +2590,34 @@
       {
         "autogeneratePattern": "",
         "hidden": false,
+        "id": "field_costate_as1",
+        "max": 0,
+        "min": 0,
+        "name": "company_state",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_copin_as01",
+        "max": 0,
+        "min": 0,
+        "name": "company_pincode",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
         "id": "field_email_as01",
         "max": 0,
         "min": 0,
@@ -3366,6 +3422,78 @@
       {
         "autogeneratePattern": "",
         "hidden": false,
+        "id": "field_doc_bilst",
+        "max": 0,
+        "min": 0,
+        "name": "billing_state",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_doc_bilpin",
+        "max": 0,
+        "min": 0,
+        "name": "billing_pincode",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_gsttyp",
+        "maxSelect": 1,
+        "name": "gst_type",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "cgst_sgst",
+          "igst"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "field_doc_pdffil",
+        "maxSelect": 1,
+        "maxSize": 20971520,
+        "mimeTypes": [
+          "application/pdf"
+        ],
+        "name": "pdf_file",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": null,
+        "type": "file"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "field_doc_share1",
+        "max": 0,
+        "min": 0,
+        "name": "share_token",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
         "id": "field_doc_ref001",
         "max": 0,
         "min": 0,
@@ -3444,7 +3572,8 @@
     "indexes": [
       "CREATE UNIQUE INDEX `idx_documents_number` ON `documents` (`document_number`)",
       "CREATE INDEX `idx_documents_type` ON `documents` (`type`)",
-      "CREATE INDEX `idx_documents_status` ON `documents` (`status`)"
+      "CREATE INDEX `idx_documents_status` ON `documents` (`status`)",
+      "CREATE UNIQUE INDEX `idx_documents_share_token` ON `documents` (`share_token`) WHERE `share_token` != ''"
     ]
   },
   {

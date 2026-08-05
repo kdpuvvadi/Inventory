@@ -366,6 +366,8 @@ export default function CustomerDetailPage() {
             <DetailField label="Email" value={customer.email} />
             <DetailField label="Phone" value={customer.phone} />
             <DetailField label="Address" value={customer.address} />
+            <DetailField label="State" value={customer.state} />
+            <DetailField label="Pincode" value={customer.pincode} />
             <DetailField label="Notes" value={customer.notes} />
           </dl>
         </CardContent>

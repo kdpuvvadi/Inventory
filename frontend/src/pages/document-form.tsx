@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/layout/page-header'
+import { StateSelect } from '@/components/state-select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -33,10 +34,11 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useSettings } from '@/contexts/settings-context'
-import { useRecord, useTypedCollectionQuery } from '@/hooks/use-collection'
+import { useRecord, useTypedCollectionQuery, recordQueryKey, collectionQueryKey } from '@/hooks/use-collection'
 import { COLLECTIONS } from '@/lib/pocketbase'
 import { cn, formatCurrency, normalizeCurrencyCode } from '@/lib/utils'
 import { salesDocumentSchema, type SalesDocumentFormValues } from '@/schemas'
+import { logAudit } from '@/services/audit'
 import { createRecord, deleteRecord, updateRecord } from '@/services/crud'
 import type {
   Customer,
@@ -49,12 +51,16 @@ import { DOCUMENT_TYPES } from '@/utils/constants'
 import {
   calcDocumentTotals,
   calcLineTotals,
+  createShareToken,
   generateDocumentNumber,
   resolveDocumentCurrency,
+  resolveGstType,
+  splitGstAmount,
   stripHtml,
 } from '@/utils/documents'
+import { useQueryClient } from '@tanstack/react-query'
 
-function emptyLine(taxPercent = 0): SalesDocumentFormValues['line_items'][number] {
+function emptyLine(): SalesDocumentFormValues['line_items'][number] {
   return {
     product: '',
     description: '',
@@ -63,7 +69,7 @@ function emptyLine(taxPercent = 0): SalesDocumentFormValues['line_items'][number
     quantity: 1,
     unit_price: 0,
     discount_percent: 0,
-    tax_percent: taxPercent,
+    tax_percent: 0,
     save_as_product: false,
   }
 }
@@ -171,6 +177,7 @@ function ProductPicker({
 
 export default function DocumentFormPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { id: editId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const isEditing = Boolean(editId)
@@ -178,6 +185,10 @@ export default function DocumentFormPage() {
   const today = new Date().toISOString().slice(0, 10)
   const defaultTax = settings?.default_tax_rate ?? 0
   const [hydrated, setHydrated] = useState(false)
+  const [showDocDiscount, setShowDocDiscount] = useState(false)
+  const [lineDiscountVisible, setLineDiscountVisible] = useState<
+    Record<string, boolean>
+  >({})
 
   const initialType = (searchParams.get('type') as DocumentType | null) ?? 'quotation'
   const validInitialType = DOCUMENT_TYPES.some((t) => t.value === initialType)
@@ -187,6 +198,8 @@ export default function DocumentFormPage() {
   const { data: existingDoc, isLoading: docLoading } = useRecord<SalesDocument>(
     COLLECTIONS.DOCUMENTS,
     editId,
+    undefined,
+    { staleTime: 0, refetchOnMount: 'always' },
   )
 
   const existingItemsOptions = useMemo(
@@ -221,11 +234,13 @@ export default function DocumentFormPage() {
       due_date: '',
       currency,
       discount_percent: 0,
-      tax_percent: defaultTax,
+      tax_percent: validInitialType === 'quotation' ? 0 : defaultTax,
       billing_address: '',
+      billing_state: '',
+      billing_pincode: '',
       reference: '',
       notes: '',
-      line_items: [emptyLine(defaultTax)],
+      line_items: [emptyLine()],
     },
   })
 
@@ -241,17 +256,33 @@ export default function DocumentFormPage() {
     control: form.control,
     name: 'discount_percent',
   })
+  const watchedTaxPercent = useWatch({
+    control: form.control,
+    name: 'tax_percent',
+  })
+  const watchedBillingState = useWatch({
+    control: form.control,
+    name: 'billing_state',
+  })
   const watchedCurrency = useWatch({ control: form.control, name: 'currency' })
+  const isQuotation = watchedType === 'quotation'
 
   useEffect(() => {
     if (isEditing || hydrated) return
     form.setValue('document_number', generateDocumentNumber(watchedType, settings))
-  }, [watchedType, settings, form, isEditing, hydrated])
+    if (watchedType === 'quotation') {
+      form.setValue('tax_percent', 0)
+    } else if ((form.getValues('tax_percent') || 0) === 0) {
+      form.setValue('tax_percent', settings?.default_tax_rate ?? defaultTax)
+    }
+  }, [watchedType, settings, form, isEditing, hydrated, defaultTax])
 
   useEffect(() => {
     if (isEditing || !settings || hydrated) return
     form.setValue('currency', normalizeCurrencyCode(settings.currency || currency))
-    form.setValue('tax_percent', settings.default_tax_rate ?? 0)
+    if (form.getValues('type') !== 'quotation') {
+      form.setValue('tax_percent', settings.default_tax_rate ?? 0)
+    }
   }, [settings, currency, form, isEditing, hydrated])
 
   useEffect(() => {
@@ -264,6 +295,8 @@ export default function DocumentFormPage() {
     }
 
     const items = (existingItemsData?.items ?? []) as DocumentItem[]
+    const storedDiscountPct = Number(existingDoc.discount_percent) || 0
+
     form.reset({
       document_number: existingDoc.document_number,
       type: existingDoc.type,
@@ -274,9 +307,12 @@ export default function DocumentFormPage() {
       currency: normalizeCurrencyCode(
         existingDoc.currency || settings?.currency || currency,
       ),
-      discount_percent: existingDoc.discount_percent || 0,
-      tax_percent: existingDoc.tax_percent || 0,
+      discount_percent: storedDiscountPct,
+      tax_percent:
+        existingDoc.type === 'quotation' ? 0 : existingDoc.tax_percent || 0,
       billing_address: stripHtml(existingDoc.billing_address) || '',
+      billing_state: existingDoc.billing_state || '',
+      billing_pincode: existingDoc.billing_pincode || '',
       reference: existingDoc.reference || '',
       notes: stripHtml(existingDoc.notes) || '',
       line_items:
@@ -289,11 +325,20 @@ export default function DocumentFormPage() {
               quantity: item.quantity,
               unit_price: item.unit_price,
               discount_percent: item.discount_percent || 0,
-              tax_percent: item.tax_percent || 0,
+              tax_percent: 0,
               save_as_product: false,
             }))
-          : [emptyLine(defaultTax)],
+          : [emptyLine()],
     })
+    // Show discount controls whenever PocketBase has a non-zero %.
+    setShowDocDiscount(storedDiscountPct > 0)
+    const visible: Record<string, boolean> = {}
+    items.forEach((item, index) => {
+      if ((item.discount_percent || 0) > 0) {
+        visible[String(index)] = true
+      }
+    })
+    setLineDiscountVisible(visible)
     setHydrated(true)
   }, [
     isEditing,
@@ -309,17 +354,45 @@ export default function DocumentFormPage() {
     defaultTax,
   ])
 
+  // When discount UI is collapsed, keep the persisted value at 0.
+  useEffect(() => {
+    if (showDocDiscount) return
+    if ((Number(form.getValues('discount_percent')) || 0) !== 0) {
+      form.setValue('discount_percent', 0, { shouldDirty: true })
+    }
+  }, [showDocDiscount, form])
+
   useEffect(() => {
     if (isEditing) return
     const customer = (customersData?.items ?? []).find((c) => c.id === watchedCustomer)
-    if (customer?.address) {
-      form.setValue('billing_address', customer.address)
-    }
+    if (!customer) return
+    if (customer.address) form.setValue('billing_address', stripHtml(customer.address))
+    form.setValue('billing_state', customer.state || '')
+    form.setValue('billing_pincode', customer.pincode || '')
   }, [watchedCustomer, customersData?.items, form, isEditing])
 
+  const effectiveTaxPercent = isQuotation ? 0 : watchedTaxPercent ?? 0
+  // Single source of truth: the form field value. 0 / empty = no discount.
+  const discountPercent = Math.max(0, Number(watchedDocDiscount) || 0)
+  const discountFieldVisible = showDocDiscount || discountPercent > 0
+
   const totals = useMemo(
-    () => calcDocumentTotals(watchedItems ?? [], watchedDocDiscount ?? 0),
-    [watchedItems, watchedDocDiscount],
+    () =>
+      calcDocumentTotals(
+        watchedItems ?? [],
+        discountPercent,
+        effectiveTaxPercent,
+      ),
+    [watchedItems, discountPercent, effectiveTaxPercent],
+  )
+
+  const gstBreakdown = useMemo(
+    () =>
+      splitGstAmount(
+        totals.taxAmount,
+        resolveGstType(settings?.company_state, watchedBillingState),
+      ),
+    [totals.taxAmount, settings?.company_state, watchedBillingState],
   )
 
   const customers = customersData?.items ?? []
@@ -347,11 +420,36 @@ export default function DocumentFormPage() {
   const onSubmit = async (values: SalesDocumentFormValues) => {
     try {
       const { line_items, ...docData } = values
-      const lineTotals = line_items.map((item) => ({
+      const isQuote = docData.type === 'quotation'
+      const taxPercent = isQuote ? 0 : Number(docData.tax_percent) || 0
+      // Persist exactly what is in the form. Hidden/removed discount is forced to 0 above.
+      const discountPercentValue = Math.max(
+        0,
+        Number(form.getValues('discount_percent')) || 0,
+      )
+
+      const normalizedLines = line_items.map((item) => {
+        const lineDiscount = Number(item.discount_percent) || 0
+        return {
+          ...item,
+          discount_percent: lineDiscount > 0 ? lineDiscount : 0,
+        }
+      })
+      const lineTotals = normalizedLines.map((item) => ({
         ...item,
         ...calcLineTotals(item),
       }))
-      const docTotals = calcDocumentTotals(line_items, values.discount_percent)
+      const docTotals = calcDocumentTotals(
+        normalizedLines,
+        discountPercentValue,
+        taxPercent,
+      )
+      const gstType = resolveGstType(
+        settings?.company_state,
+        docData.billing_state,
+      )
+      const shareToken =
+        (isEditing && existingDoc?.share_token) || createShareToken()
 
       const payload = {
         document_number: docData.document_number,
@@ -363,32 +461,45 @@ export default function DocumentFormPage() {
         currency: normalizeCurrencyCode(
           docData.currency || settings?.currency || currency,
         ),
-        discount_percent: docData.discount_percent || 0,
-        tax_percent: docData.tax_percent || 0,
+        discount_percent: discountPercentValue,
+        tax_percent: taxPercent,
         subtotal: docTotals.subtotal,
-        discount_amount: docTotals.discountAmount,
+        discount_amount:
+          discountPercentValue > 0 ? docTotals.discountAmount : 0,
         tax_amount: docTotals.taxAmount,
         total: docTotals.total,
         billing_address: docData.billing_address || '',
+        billing_state: docData.billing_state || '',
+        billing_pincode: docData.billing_pincode || '',
+        gst_type: gstType,
+        share_token: shareToken,
         reference: docData.reference || '',
         notes: docData.notes || '',
       }
 
       let docId = editId
+      let savedDoc: SalesDocument | null = null
 
       if (isEditing && editId) {
-        await updateRecord(COLLECTIONS.DOCUMENTS, editId, payload)
+        savedDoc = await updateRecord<SalesDocument>(
+          COLLECTIONS.DOCUMENTS,
+          editId,
+          payload,
+        )
 
         const currentItems = existingItemsData?.items ?? []
         for (const item of currentItems) {
           await deleteRecord(COLLECTIONS.DOCUMENT_ITEMS, item.id)
         }
       } else {
-        const created = await createRecord(COLLECTIONS.DOCUMENTS, payload)
-        docId = created.id
+        savedDoc = await createRecord<SalesDocument>(
+          COLLECTIONS.DOCUMENTS,
+          payload,
+        )
+        docId = savedDoc.id
       }
 
-      if (!docId) throw new Error('Document id missing')
+      if (!docId || !savedDoc) throw new Error('Document id missing')
 
       for (const item of lineTotals) {
         let productId = item.product || ''
@@ -418,10 +529,39 @@ export default function DocumentFormPage() {
           quantity: item.quantity,
           unit_price: item.unit_price,
           discount_percent: item.discount_percent || 0,
-          tax_percent: item.tax_percent || 0,
+          tax_percent: 0,
           line_total: item.lineTotal,
         })
       }
+
+      await logAudit({
+        action: isEditing ? 'update' : 'create',
+        collection: COLLECTIONS.DOCUMENTS,
+        recordId: docId,
+        previousValue: isEditing
+          ? (existingDoc as unknown as Record<string, unknown>)
+          : null,
+        newValue: {
+          ...(savedDoc as unknown as Record<string, unknown>),
+          discount_percent: discountPercentValue,
+          discount_amount:
+            discountPercentValue > 0 ? docTotals.discountAmount : 0,
+          total: docTotals.total,
+        },
+      })
+
+      await queryClient.invalidateQueries({
+        queryKey: recordQueryKey(COLLECTIONS.DOCUMENTS, docId),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['record', COLLECTIONS.DOCUMENTS],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: collectionQueryKey(COLLECTIONS.DOCUMENTS),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['collection', COLLECTIONS.DOCUMENT_ITEMS],
+      })
 
       toast.success(
         isEditing
@@ -635,16 +775,97 @@ export default function DocumentFormPage() {
               <FormField
                 control={form.control}
                 name="discount_percent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Document Discount %</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" max="100" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) =>
+                  discountFieldVisible ? (
+                    <FormItem>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Document Discount %</FormLabel>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-muted-foreground"
+                          onClick={() => {
+                            form.setValue('discount_percent', 0, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                              shouldTouch: true,
+                            })
+                            setShowDocDiscount(false)
+                          }}
+                        >
+                          <X className="mr-1 h-3.5 w-3.5" />
+                          Remove
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          value={
+                            field.value === undefined || field.value === null
+                              ? ''
+                              : field.value
+                          }
+                          onChange={(event) => {
+                            const next = event.target.value
+                            const parsed = next === '' ? 0 : Number(next)
+                            field.onChange(Number.isFinite(parsed) ? parsed : 0)
+                            setShowDocDiscount(true)
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Set to 0 or use Remove to clear discount on save.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  ) : (
+                    <FormItem>
+                      <FormLabel className="sr-only">Document Discount %</FormLabel>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setShowDocDiscount(true)
+                          form.setValue('discount_percent', 0, {
+                            shouldDirty: true,
+                          })
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add discount
+                      </Button>
+                    </FormItem>
+                  )
+                }
               />
+
+              {!isQuotation && (
+                <FormField
+                  control={form.control}
+                  name="tax_percent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax / GST %</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" max="100" step="0.01" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Applied once on the discounted total. Same-state → CGST+SGST;
+                        different state → IGST.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -654,6 +875,36 @@ export default function DocumentFormPage() {
                     <FormLabel>Billing Address</FormLabel>
                     <FormControl>
                       <Textarea rows={2} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="billing_state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State</FormLabel>
+                    <StateSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="billing_pincode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pincode</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Pincode" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -683,7 +934,7 @@ export default function DocumentFormPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append(emptyLine(defaultTax))}
+                onClick={() => append(emptyLine())}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Line
@@ -694,6 +945,10 @@ export default function DocumentFormPage() {
                 const line = watchedItems?.[index]
                 const lineCalc = line ? calcLineTotals(line) : null
                 const isCustom = !line?.product
+                const showLineDiscount =
+                  lineDiscountVisible[field.id] ||
+                  lineDiscountVisible[String(index)] ||
+                  (line?.discount_percent || 0) > 0
 
                 return (
                   <div
@@ -741,7 +996,13 @@ export default function DocumentFormPage() {
                       />
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                    <div
+                      className={
+                        showLineDiscount
+                          ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-5'
+                          : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4'
+                      }
+                    >
                       <FormField
                         control={form.control}
                         name={`line_items.${index}.part_number`}
@@ -794,32 +1055,49 @@ export default function DocumentFormPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name={`line_items.${index}.discount_percent`}
-                        render={({ field: discField }) => (
-                          <FormItem>
-                            <FormLabel>Disc %</FormLabel>
-                            <FormControl>
-                              <Input type="number" min="0" max="100" step="0.01" {...discField} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`line_items.${index}.tax_percent`}
-                        render={({ field: taxField }) => (
-                          <FormItem>
-                            <FormLabel>Tax %</FormLabel>
-                            <FormControl>
-                              <Input type="number" min="0" max="100" step="0.01" {...taxField} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {showLineDiscount ? (
+                        <FormField
+                          control={form.control}
+                          name={`line_items.${index}.discount_percent`}
+                          render={({ field: discField }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between gap-1">
+                                <FormLabel>Disc %</FormLabel>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-muted-foreground"
+                                  onClick={() => {
+                                    form.setValue(
+                                      `line_items.${index}.discount_percent`,
+                                      0,
+                                    )
+                                    setLineDiscountVisible((prev) => {
+                                      const next = { ...prev }
+                                      delete next[field.id]
+                                      delete next[String(index)]
+                                      return next
+                                    })
+                                  }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                  {...discField}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -831,7 +1109,23 @@ export default function DocumentFormPage() {
                             : formatCurrency(0, displayCurrency)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 sm:gap-4">
+                        {!showLineDiscount ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setLineDiscountVisible((prev) => ({
+                                ...prev,
+                                [field.id]: true,
+                              }))
+                            }
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add discount
+                          </Button>
+                        ) : null}
                         {isCustom && (
                           <FormField
                             control={form.control}
@@ -874,14 +1168,53 @@ export default function DocumentFormPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(totals.subtotal, displayCurrency)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Discount</span>
-                  <span>{formatCurrency(totals.discountAmount, displayCurrency)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tax</span>
-                  <span>{formatCurrency(totals.taxAmount, displayCurrency)}</span>
-                </div>
+                {discountPercent > 0 && totals.discountAmount > 0 ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Discount ({discountPercent}%)
+                    </span>
+                    <span>{formatCurrency(totals.discountAmount, displayCurrency)}</span>
+                  </div>
+                ) : null}
+                {!isQuotation && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Taxable</span>
+                      <span>
+                        {formatCurrency(totals.taxableAmount, displayCurrency)}
+                      </span>
+                    </div>
+                    {gstBreakdown.gstType === 'igst' ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          IGST ({effectiveTaxPercent}%)
+                        </span>
+                        <span>
+                          {formatCurrency(gstBreakdown.igst, displayCurrency)}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            CGST ({effectiveTaxPercent / 2}%)
+                          </span>
+                          <span>
+                            {formatCurrency(gstBreakdown.cgst, displayCurrency)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            SGST ({effectiveTaxPercent / 2}%)
+                          </span>
+                          <span>
+                            {formatCurrency(gstBreakdown.sgst, displayCurrency)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
                 <div className="flex justify-between border-t pt-2 text-base font-semibold">
                   <span>Total</span>
                   <span>{formatCurrency(totals.total, displayCurrency)}</span>

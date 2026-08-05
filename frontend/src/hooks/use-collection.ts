@@ -65,10 +65,13 @@ export function useRecord<T extends RecordModel = RecordModel>(
   collection: string,
   id: string | undefined,
   expand?: string,
+  options?: { staleTime?: number; refetchOnMount?: boolean | 'always' },
 ) {
   return useQuery<T>({
     queryKey: recordQueryKey(collection, id ?? '', expand),
     queryFn: () => getRecord<T>(collection, id!, expand),
     enabled: Boolean(id),
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   })
 }

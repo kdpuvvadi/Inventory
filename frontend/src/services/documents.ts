@@ -1,10 +1,13 @@
+import { logAudit } from '@/services/audit'
 import type { AppSettings, DocumentItem, DocumentType, SalesDocument } from '@/types'
 import { COLLECTIONS } from '@/lib/pocketbase'
 import { createRecord, listRecords, updateRecord } from '@/services/crud'
 import {
   generateDocumentNumber,
   getDocumentTypeLabel,
+  createShareToken,
   resolveDocumentCurrency,
+  resolveGstType,
 } from '@/utils/documents'
 
 const CONVERSION_MAP: Partial<Record<DocumentType, DocumentType>> = {
@@ -43,6 +46,20 @@ export async function convertDocument(options: {
 
   const today = new Date().toISOString().slice(0, 10)
   const sourceLabel = getDocumentTypeLabel(source.type)
+  const taxPercent =
+    source.type === 'quotation'
+      ? settings?.default_tax_rate || 0
+      : source.tax_percent || 0
+
+  let subtotal = source.subtotal || 0
+  let discountAmount = source.discount_amount || 0
+  let taxAmount = source.tax_amount || 0
+  let total = source.total || 0
+  if (source.type === 'quotation' && taxPercent > 0) {
+    const taxable = subtotal - discountAmount
+    taxAmount = (taxable * taxPercent) / 100
+    total = taxable + taxAmount
+  }
 
   const created = await createRecord<SalesDocument>(COLLECTIONS.DOCUMENTS, {
     document_number: generateDocumentNumber(targetType, settings),
@@ -53,12 +70,19 @@ export async function convertDocument(options: {
     due_date: source.due_date || '',
     currency: resolveDocumentCurrency(source.currency, settings),
     discount_percent: source.discount_percent || 0,
-    tax_percent: source.tax_percent || 0,
-    subtotal: source.subtotal || 0,
-    discount_amount: source.discount_amount || 0,
-    tax_amount: source.tax_amount || 0,
-    total: source.total || 0,
+    tax_percent: taxPercent,
+    subtotal,
+    discount_amount: discountAmount,
+    tax_amount: taxAmount,
+    total,
     billing_address: source.billing_address || '',
+    billing_state: source.billing_state || '',
+    billing_pincode: source.billing_pincode || '',
+    gst_type:
+      resolveGstType(settings?.company_state, source.billing_state) ||
+      source.gst_type ||
+      'cgst_sgst',
+    share_token: createShareToken(),
     reference: source.reference || source.document_number,
     notes: source.notes
       ? `${source.notes}\n\nConverted from ${sourceLabel} ${source.document_number}.`
@@ -77,14 +101,35 @@ export async function convertDocument(options: {
       quantity: item.quantity,
       unit_price: item.unit_price,
       discount_percent: item.discount_percent || 0,
-      tax_percent: item.tax_percent || 0,
+      tax_percent: 0,
       line_total: item.line_total,
     })
   }
 
-  await updateRecord(COLLECTIONS.DOCUMENTS, source.id, {
-    status: 'converted',
-    converted_to: created.id,
+  const updatedSource = await updateRecord<SalesDocument>(
+    COLLECTIONS.DOCUMENTS,
+    source.id,
+    {
+      status: 'converted',
+      converted_to: created.id,
+    },
+  )
+
+  await logAudit({
+    action: 'convert',
+    collection: COLLECTIONS.DOCUMENTS,
+    recordId: source.id,
+    previousValue: source as unknown as Record<string, unknown>,
+    newValue: updatedSource as unknown as Record<string, unknown>,
+  })
+  await logAudit({
+    action: 'create',
+    collection: COLLECTIONS.DOCUMENTS,
+    recordId: created.id,
+    newValue: {
+      ...(created as unknown as Record<string, unknown>),
+      converted_from: source.document_number,
+    },
   })
 
   return created

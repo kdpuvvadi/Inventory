@@ -9,6 +9,7 @@ import CustomersPage from '@/pages/customers'
 import DashboardPage from '@/pages/dashboard'
 import DocumentDetailPage from '@/pages/document-detail'
 import DocumentFormPage from '@/pages/document-form'
+import DocumentSharePage from '@/pages/document-share'
 import DocumentsPage from '@/pages/documents'
 import InventoryPage from '@/pages/inventory'
 import LoginPage from '@/pages/login'
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <AuthLayout />,
     children: [{ index: true, element: <LoginPage /> }],
+  },
+  {
+    path: '/share/:token',
+    element: <DocumentSharePage />,
   },
   {
     path: '/',

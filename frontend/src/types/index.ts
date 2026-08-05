@@ -49,6 +49,8 @@ export interface Customer extends BaseRecord {
   email: string
   phone: string
   address: string
+  state: string
+  pincode: string
   notes: string
 }
 
@@ -234,8 +236,8 @@ export interface AuditLog extends BaseRecord {
   action: string
   collection_name: string
   record_id: string
-  previous_value: string
-  new_value: string
+  previous_value: unknown
+  new_value: unknown
 }
 
 export type BomStatus = 'draft' | 'active' | 'archived'
@@ -263,6 +265,8 @@ export interface AppSettings extends BaseRecord {
   theme_default: 'light' | 'dark' | 'system'
   company_logo: string
   company_address: string
+  company_state: string
+  company_pincode: string
   company_email: string
   company_phone: string
   gst_number: string
@@ -278,6 +282,8 @@ export interface AppSettings extends BaseRecord {
 }
 
 export type DocumentType = 'quotation' | 'invoice' | 'proforma_invoice'
+
+export type GstType = 'cgst_sgst' | 'igst'
 
 export type DocumentStatus =
   | 'draft'
@@ -303,6 +309,11 @@ export interface SalesDocument extends BaseRecord {
   tax_amount: number
   total: number
   billing_address: string
+  billing_state: string
+  billing_pincode: string
+  gst_type: GstType
+  pdf_file?: string
+  share_token: string
   reference: string
   notes: string
   source_document: string

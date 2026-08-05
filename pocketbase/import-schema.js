@@ -56,6 +56,17 @@ const hasDocumentConversionFields = Boolean(
   documentsCol?.fields?.some((f) => f.name === 'source_document') &&
     documentsCol?.fields?.some((f) => f.name === 'converted_to'),
 )
+const hasDocumentShareFields = Boolean(
+  documentsCol?.fields?.some((f) => f.name === 'share_token') &&
+    documentsCol?.fields?.some((f) => f.name === 'pdf_file') &&
+    documentsCol?.fields?.some((f) => f.name === 'gst_type') &&
+    documentsCol?.fields?.some((f) => f.name === 'billing_state'),
+)
+const customersCol = existing.find((c) => c.name === 'customers')
+const hasCustomerAddressFields = Boolean(
+  customersCol?.fields?.some((f) => f.name === 'state') &&
+    customersCol?.fields?.some((f) => f.name === 'pincode'),
+)
 const productsCol = existing.find((c) => c.name === 'products')
 const settingsCol = existing.find((c) => c.name === 'app_settings')
 const hasTrackSerialsField = Boolean(
@@ -65,6 +76,10 @@ const hasCompanyBrandingFields = Boolean(
   settingsCol?.fields?.some((f) => f.name === 'company_logo') &&
     settingsCol?.fields?.some((f) => f.name === 'site_name'),
 )
+const hasCompanyStateFields = Boolean(
+  settingsCol?.fields?.some((f) => f.name === 'company_state') &&
+    settingsCol?.fields?.some((f) => f.name === 'company_pincode'),
+)
 const schemaComplete =
   hasAppCollections &&
   hasContactModel &&
@@ -72,7 +87,10 @@ const schemaComplete =
   hasTrackSerialsField &&
   hasDocumentsModel &&
   hasCompanyBrandingFields &&
-  hasDocumentConversionFields
+  hasDocumentConversionFields &&
+  hasDocumentShareFields &&
+  hasCustomerAddressFields &&
+  hasCompanyStateFields
 
 if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
   console.log(
@@ -86,7 +104,7 @@ if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
 
 if (hasAppCollections && !schemaComplete) {
   console.log(
-    'Existing install detected — merging schema update (documents/branding/conversion)...',
+    'Existing install detected — merging schema update (documents/share/address/GST)...',
   )
 }
 

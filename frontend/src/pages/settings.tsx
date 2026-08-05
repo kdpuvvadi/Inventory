@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import type { RecordModel } from 'pocketbase'
 
 import { PageHeader } from '@/components/layout/page-header'
+import { StateSelect } from '@/components/state-select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -46,6 +47,8 @@ const DEFAULT_SETTINGS: SettingsFormValues = {
   low_stock_threshold: 10,
   theme_default: 'system',
   company_address: '',
+  company_state: '',
+  company_pincode: '',
   company_email: '',
   company_phone: '',
   gst_number: '',
@@ -88,6 +91,8 @@ function settingsToFormValues(settings: AppSettings): SettingsFormValues {
       settings.low_stock_threshold ?? DEFAULT_SETTINGS.low_stock_threshold,
     theme_default: themeDefault,
     company_address: stripHtml(settings.company_address) || '',
+    company_state: settings.company_state || '',
+    company_pincode: settings.company_pincode || '',
     company_email: settings.company_email || '',
     company_phone: settings.company_phone || '',
     gst_number: settings.gst_number || '',
@@ -166,6 +171,8 @@ export default function SettingsPage() {
       formData.append('low_stock_threshold', String(values.low_stock_threshold))
       formData.append('theme_default', values.theme_default)
       formData.append('company_address', values.company_address || '')
+      formData.append('company_state', values.company_state || '')
+      formData.append('company_pincode', values.company_pincode || '')
       formData.append('company_email', values.company_email || '')
       formData.append('company_phone', values.company_phone || '')
       formData.append('gst_number', values.gst_number || '')
@@ -358,12 +365,43 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel>Address</FormLabel>
                     <FormControl>
-                      <Textarea rows={3} placeholder="Street, City, State, PIN" {...field} />
+                      <Textarea rows={3} placeholder="Street, City" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="company_state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <StateSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="company_pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Pincode" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

@@ -68,9 +68,14 @@ function useBreadcrumbs() {
 
     return segments.map((segment, index) => {
       const href = '/' + segments.slice(0, index + 1).join('/')
+      const isRecordId = /^[a-z0-9]{15}$/i.test(segment)
       const label =
         BREADCRUMB_LABELS[segment] ??
-        (segment.length > 20 ? `${segment.slice(0, 8)}...` : segment)
+        (isRecordId
+          ? 'Details'
+          : segment.length > 20
+            ? `${segment.slice(0, 8)}...`
+            : segment)
 
       return {
         label,
