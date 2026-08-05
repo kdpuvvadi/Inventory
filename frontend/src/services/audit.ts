@@ -25,6 +25,12 @@ const AUDIT_IGNORE_KEYS = new Set([
   'expand',
 ])
 
+const DERIVED_FIELD_DRIVERS: Record<string, readonly string[]> = {
+  discount_amount: ['discount_percent', 'subtotal'],
+  tax_amount: ['tax_percent', 'discount_percent', 'subtotal'],
+  total: ['discount_percent', 'tax_percent', 'subtotal'],
+}
+
 const FIELD_LABELS: Record<string, string> = {
   document_number: 'Document number',
   type: 'Type',
@@ -131,6 +137,51 @@ function sanitizeRecord(
   return Object.keys(out).length > 0 ? out : null
 }
 
+/** True when `key` is a computed field whose driver also appears in `changedKeys`. */
+function isCascadingDerivedField(
+  key: string,
+  changedKeys: Set<string>,
+): boolean {
+  const drivers = DERIVED_FIELD_DRIVERS[key]
+  if (!drivers) return false
+  return drivers.some((driver) => changedKeys.has(driver))
+}
+
+/**
+ * Drop computed amount/total fields when the rate (or subtotal) that drove
+ * them is already in the change set.
+ */
+function omitCascadingDerivedFields(
+  previous: Record<string, unknown> | null,
+  next: Record<string, unknown> | null,
+): {
+  previousValue: Record<string, unknown> | null
+  newValue: Record<string, unknown> | null
+} {
+  if (!previous || !next) {
+    return { previousValue: previous, newValue: next }
+  }
+
+  const changedKeys = new Set<string>()
+  for (const key of new Set([...Object.keys(previous), ...Object.keys(next)])) {
+    if (AUDIT_IGNORE_KEYS.has(key)) continue
+    if (!valuesEqual(previous[key], next[key])) changedKeys.add(key)
+  }
+
+  const prevOut: Record<string, unknown> = {}
+  const nextOut: Record<string, unknown> = {}
+  for (const key of changedKeys) {
+    if (isCascadingDerivedField(key, changedKeys)) continue
+    if (key in previous) prevOut[key] = previous[key]
+    if (key in next) nextOut[key] = next[key]
+  }
+
+  return {
+    previousValue: Object.keys(prevOut).length > 0 ? prevOut : null,
+    newValue: Object.keys(nextOut).length > 0 ? nextOut : null,
+  }
+}
+
 /** Build only the changed fields between two audit snapshots. */
 export function buildAuditDiff(
   previousValue?: Record<string, unknown> | null,
@@ -162,10 +213,10 @@ export function buildAuditDiff(
     if (key in next) nextOut[key] = to
   }
 
-  return {
-    previousValue: Object.keys(prevOut).length > 0 ? prevOut : null,
-    newValue: Object.keys(nextOut).length > 0 ? nextOut : null,
-  }
+  return omitCascadingDerivedFields(
+    Object.keys(prevOut).length > 0 ? prevOut : null,
+    Object.keys(nextOut).length > 0 ? nextOut : null,
+  )
 }
 
 /** Human-readable field changes for the audit trail UI. */
@@ -181,6 +232,7 @@ export function getAuditChanges(
   if (!previous && next) {
     return Object.entries(next)
       .filter(([key]) => !AUDIT_IGNORE_KEYS.has(key))
+      .filter(([key]) => !(key in DERIVED_FIELD_DRIVERS))
       .filter(([, value]) => value != null && value !== '')
       .slice(0, 8)
       .map(([key, value]) => ({
@@ -200,16 +252,19 @@ export function getAuditChanges(
       }))
   }
 
+  const { previousValue: prevDiff, newValue: nextDiff } =
+    omitCascadingDerivedFields(previous, next)
+
   const keys = new Set([
-    ...Object.keys(previous ?? {}),
-    ...Object.keys(next ?? {}),
+    ...Object.keys(prevDiff ?? {}),
+    ...Object.keys(nextDiff ?? {}),
   ])
   const changes: AuditChange[] = []
 
   for (const key of [...keys].sort()) {
     if (AUDIT_IGNORE_KEYS.has(key)) continue
-    const from = previous?.[key]
-    const to = next?.[key]
+    const from = prevDiff?.[key]
+    const to = nextDiff?.[key]
     if (valuesEqual(from, to)) continue
     changes.push({
       field: fieldLabel(key),
