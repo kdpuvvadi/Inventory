@@ -29,6 +29,7 @@ import PurchaseOrdersPage from '@/pages/purchase-orders'
 import ReportsPage from '@/pages/reports'
 import SettingsPage from '@/pages/settings'
 import StockIntakePage from '@/pages/stock-intake'
+import StockImportPage from '@/pages/stock-import'
 import SupplierDetailPage from '@/pages/supplier-detail'
 import SuppliersPage from '@/pages/suppliers'
 import TransactionsPage from '@/pages/transactions'
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
       { path: 'customers', element: <CustomersPage /> },
       { path: 'customers/:id', element: <CustomerDetailPage /> },
       { path: 'inventory/intake', element: <StockIntakePage /> },
+      { path: 'inventory/import', element: <StockImportPage /> },
       { path: 'inventory', element: <InventoryPage /> },
       { path: 'warehouses', element: <WarehousesPage /> },
       { path: 'projects', element: <ProjectsPage /> },

@@ -435,6 +435,9 @@ export default function InventoryPage() {
               <Button asChild variant="outline">
                 <Link to="/warehouses">Warehouses</Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link to="/inventory/import">Bulk Import</Link>
+              </Button>
               <Button asChild>
                 <Link to="/inventory/intake">
                   <Plus className="mr-2 h-4 w-4" />

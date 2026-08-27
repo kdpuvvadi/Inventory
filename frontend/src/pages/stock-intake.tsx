@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -313,6 +313,11 @@ export default function StockIntakePage() {
           { label: 'Inventory', href: '/inventory' },
           { label: 'Stock Intake' },
         ]}
+        actions={
+          <Button asChild variant="outline">
+            <Link to="/inventory/import">Bulk Import</Link>
+          </Button>
+        }
       />
 
       <Tabs value={mode} onValueChange={handleModeChange} className="mx-auto max-w-3xl">

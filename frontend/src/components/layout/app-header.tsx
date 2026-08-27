@@ -43,6 +43,8 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   suppliers: 'Suppliers',
   customers: 'Customers',
   inventory: 'Inventory',
+  intake: 'Stock Intake',
+  import: 'Bulk Import',
   projects: 'Projects',
   'purchase-orders': 'Purchase Orders',
   documents: 'Documents',

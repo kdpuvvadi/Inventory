@@ -1,0 +1,4 @@
+sku,asset_tag,name,quantity,warehouse,location,unit_of_measure,unit_cost,min_stock,max_stock,reorder_level,manufacturer,supplier,category,track_serials,serials,reason,remarks
+CAB-UTP-305,,,50,Main,Aisle A / Rack 1,box,42.5,10,200,20,,,,false,,Opening stock,Existing product matched by SKU
+,AST-20260827-0101,Network Switch 24-Port,8,Main,Cage 2,each,185,2,40,5,,,Networking,false,,Opening stock,Creates a new product if asset tag and SKU are new
+SW-CORE-01,,Core Switch,2,Main,Rack 01,each,2400,1,10,2,,,,true,SN-CORE-1001|SN-CORE-1002,Opening stock,Serial-tracked: list serials separated by |
