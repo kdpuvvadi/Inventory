@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate, useParams } from 'react-router'
 
 import AppLayout from '@/layouts/app-layout'
 import AuthLayout from '@/layouts/auth-layout'
@@ -15,8 +15,8 @@ import InventoryPage from '@/pages/inventory'
 import LoginPage from '@/pages/login'
 import ManufacturerDetailPage from '@/pages/manufacturer-detail'
 import ManufacturersPage from '@/pages/manufacturers'
-import ManufacturingPage from '@/pages/manufacturing'
-import ManufacturingDetailPage from '@/pages/manufacturing-detail'
+import BomPage from '@/pages/bom'
+import BomDetailPage from '@/pages/bom-detail'
 import ProductDetailPage from '@/pages/product-detail'
 import ProductFormPage from '@/pages/product-form'
 import ProductsPage from '@/pages/products'
@@ -35,6 +35,11 @@ import TransactionsPage from '@/pages/transactions'
 import UsersPage from '@/pages/users'
 import WarehousesPage from '@/pages/warehouses'
 import ProtectedRoute from '@/routes/protected-route'
+
+function LegacyBomRedirect() {
+  const { id } = useParams()
+  return <Navigate to={id ? `/bom/${id}` : '/bom'} replace />
+}
 
 export const router = createBrowserRouter([
   {
@@ -83,8 +88,10 @@ export const router = createBrowserRouter([
       { path: 'documents/:id', element: <DocumentDetailPage /> },
       { path: 'transactions', element: <TransactionsPage /> },
       { path: 'reports', element: <ReportsPage /> },
-      { path: 'manufacturing', element: <ManufacturingPage /> },
-      { path: 'manufacturing/:id', element: <ManufacturingDetailPage /> },
+      { path: 'bom', element: <BomPage /> },
+      { path: 'bom/:id', element: <BomDetailPage /> },
+      { path: 'manufacturing', element: <Navigate to="/bom" replace /> },
+      { path: 'manufacturing/:id', element: <LegacyBomRedirect /> },
       {
         path: 'users',
         element: (

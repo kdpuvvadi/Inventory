@@ -332,7 +332,7 @@ export default function ProjectDetailPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
         <Link
-          to={`/manufacturing/${row.original.id}`}
+          to={`/bom/${row.original.id}`}
           className="font-medium text-primary hover:underline"
         >
           {row.original.name}

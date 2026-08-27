@@ -86,7 +86,7 @@ function toExportRows(items: BomItemWithExpand[]) {
   }))
 }
 
-export default function ManufacturingDetailPage() {
+export default function BomDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const writable = canWrite()
@@ -306,7 +306,7 @@ export default function ManufacturingDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" asChild>
-          <Link to="/manufacturing">
+          <Link to="/bom">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to BOMs
           </Link>
@@ -321,7 +321,7 @@ export default function ManufacturingDetailPage() {
   return (
     <div className="space-y-6">
       <Button variant="ghost" asChild className="-ml-2 w-fit">
-        <Link to="/manufacturing">
+        <Link to="/bom">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to BOMs
         </Link>
@@ -331,7 +331,7 @@ export default function ManufacturingDetailPage() {
         title={bom.name}
         description="Add components and quantities for this bill of materials."
         breadcrumbs={[
-          { label: 'BOM', href: '/manufacturing' },
+          { label: 'BOM', href: '/bom' },
           { label: bom.name },
         ]}
         actions={

@@ -81,7 +81,7 @@ function toBomPayload(values: BomFormValues) {
   }
 }
 
-export default function ManufacturingPage() {
+export default function BomPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const writable = canWrite()
@@ -138,7 +138,7 @@ export default function ManufacturingPage() {
       toast.success(editingBom ? 'BOM updated' : 'BOM created')
       closeBomDialog()
       if (!editingBom) {
-        navigate(`/manufacturing/${record.id}`)
+        navigate(`/bom/${record.id}`)
       }
     },
         onError: (error) =>
@@ -190,7 +190,7 @@ export default function ManufacturingPage() {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
         <Link
-          to={`/manufacturing/${row.original.id}`}
+          to={`/bom/${row.original.id}`}
           className="font-medium text-primary hover:underline"
         >
           {row.original.name}
@@ -226,7 +226,7 @@ export default function ManufacturingPage() {
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="sm" asChild>
-            <Link to={`/manufacturing/${row.original.id}`}>Open</Link>
+            <Link to={`/bom/${row.original.id}`}>Open</Link>
           </Button>
           {writable && (
             <>

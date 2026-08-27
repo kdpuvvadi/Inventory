@@ -49,7 +49,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   edit: 'Edit',
   transactions: 'Transactions',
   reports: 'Reports',
-  manufacturing: 'BOM',
+  bom: 'BOM',
   users: 'Users',
   profile: 'Profile',
   settings: 'Settings',

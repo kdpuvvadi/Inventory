@@ -20,7 +20,7 @@ Modern inventory management for engineering, automation, and manufacturing — t
 - **Projects** — assign/return products with automatic stock movements
 - **Purchase orders** — draft → ordered → receive → close
 - **Stock transactions** — immutable movement history
-- **Manufacturing** — BOM management
+- **BOM** — bills of materials, approval, and project assignment
 - **Reports** — inventory, purchase, and project reports with CSV export
 - **Users & roles** — Administrator, Inventory Manager, Purchase, Sales, Store Keeper, Read Only
 - **Realtime** — PocketBase subscriptions keep lists and dashboard current
