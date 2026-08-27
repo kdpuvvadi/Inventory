@@ -231,6 +231,7 @@ export interface AssignProductToProjectParams {
   productId: string
   notes?: string
   serialId?: string
+  quantity?: number
 }
 
 export async function assignProductToProject(
@@ -239,17 +240,25 @@ export async function assignProductToProject(
   assignment: ProjectAssignment
   transaction: StockTransaction
 }> {
+  const quantity = params.quantity ?? 1
+  if (quantity <= 0) {
+    throw new Error('Assignment quantity must be greater than zero')
+  }
+
   const product = await pb.collection(COLLECTIONS.PRODUCTS).getOne<Product>(params.productId)
   const warehouse = await getDefaultWarehouse()
   const inventory = await findInventory(params.productId, warehouse.id)
 
-  if (!inventory || inventory.available < 1) {
+  if (!inventory || inventory.available < quantity) {
     throw new Error('Product is not available for assignment')
   }
 
   if (productRequiresSerials(product)) {
     if (!params.serialId) {
       throw new Error('Select an available serial number for this product')
+    }
+    if (quantity !== 1) {
+      throw new Error('Serial-tracked products must be assigned one at a time')
     }
     await markSerialsStatus([params.serialId], 'assigned', {
       project: params.projectId,
@@ -275,7 +284,7 @@ export async function assignProductToProject(
   const { transaction } = await adjustStock({
     productId: params.productId,
     warehouseId: warehouse.id,
-    quantityDelta: -1,
+    quantityDelta: -quantity,
     type: 'project_assignment',
     reason: 'Assigned to project',
     referenceDocument: assignment.id,
@@ -611,6 +620,10 @@ export async function approveBom(bomId: string): Promise<Bom> {
     return bom
   }
 
+  if (!bom.project) {
+    throw new Error('Select a project before approving this BOM')
+  }
+
   const items = await pb.collection(COLLECTIONS.BOM_ITEMS).getFullList<BomItemWithExpand>({
     filter: `bom = "${bomId}"`,
     expand: 'product',
@@ -621,6 +634,7 @@ export async function approveBom(bomId: string): Promise<Bom> {
   }
 
   const warehouse = await getDefaultWarehouse()
+  const notes = `BOM: ${bom.name}`
 
   const prepared: Array<{
     item: BomItemWithExpand
@@ -662,18 +676,24 @@ export async function approveBom(bomId: string): Promise<Bom> {
     prepared.push({ item, productName, serialIds })
   }
 
-  for (const { item, productName, serialIds } of prepared) {
-    await adjustStock({
-      productId: item.product,
-      warehouseId: warehouse.id,
-      quantityDelta: -item.quantity,
-      type: 'consumption',
-      reason: `BOM approved: ${bom.name}`,
-      referenceDocument: bom.id,
-      remarks: productName,
-      serialIds,
-      serialProject: bom.project || undefined,
-    })
+  for (const { item, serialIds } of prepared) {
+    if (serialIds?.length) {
+      for (const serialId of serialIds) {
+        await assignProductToProject({
+          projectId: bom.project,
+          productId: item.product,
+          serialId,
+          notes,
+        })
+      }
+    } else {
+      await assignProductToProject({
+        projectId: bom.project,
+        productId: item.product,
+        quantity: item.quantity,
+        notes,
+      })
+    }
   }
 
   const updated = await pb.collection(COLLECTIONS.BOMS).update<Bom>(bom.id, {
@@ -685,7 +705,11 @@ export async function approveBom(bomId: string): Promise<Bom> {
     collection: COLLECTIONS.BOMS,
     recordId: bom.id,
     previousValue: { status: bom.status },
-    newValue: { status: updated.status, itemsConsumed: items.length },
+    newValue: {
+      status: updated.status,
+      projectId: bom.project,
+      itemsAssigned: items.length,
+    },
   })
 
   return updated

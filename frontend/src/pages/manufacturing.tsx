@@ -255,7 +255,7 @@ export default function ManufacturingPage() {
     <div className="space-y-6">
       <PageHeader
         title="BOM"
-        description="Create a BOM, add items, then approve it to consume stock."
+        description="Create a BOM, add items, then approve it to assign them to the project."
         actions={
           writable && (
             <Button onClick={openCreateBom}>

@@ -176,9 +176,10 @@ export default function ManufacturingDetailPage() {
     onSuccess: async () => {
       await refetchBom()
       queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.BOMS] })
+      queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.PROJECT_ASSIGNMENTS] })
       queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.INVENTORY] })
       queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.STOCK_TRANSACTIONS] })
-      toast.success('BOM approved and items consumed from stock')
+      toast.success('BOM approved and items assigned to the project')
       setApproveOpen(false)
     },
     onError: (error) =>
@@ -357,7 +358,10 @@ export default function ManufacturingDetailPage() {
               Print PDF
             </Button>
             {writable && bom.status !== 'approved' && (
-              <Button onClick={() => setApproveOpen(true)} disabled={bomItems.length === 0}>
+              <Button
+                onClick={() => setApproveOpen(true)}
+                disabled={bomItems.length === 0 || !bom.project}
+              >
                 <Check className="mr-2 h-4 w-4" />
                 Approve
               </Button>
@@ -406,6 +410,11 @@ export default function ManufacturingDetailPage() {
           </dl>
           {stripHtml(bom.notes) && (
             <p className="mt-4 text-sm text-muted-foreground">{stripHtml(bom.notes)}</p>
+          )}
+          {writable && bom.status !== 'approved' && !bom.project && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Link a project before approving so items can be added to Assigned Products.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -541,8 +550,8 @@ export default function ManufacturingDetailPage() {
         open={approveOpen}
         onOpenChange={setApproveOpen}
         title="Approve BOM"
-        description="Approving this BOM will consume all component quantities from stock. This cannot be undone."
-        confirmLabel="Approve and consume"
+        description="Approving this BOM assigns all components to the linked project and takes them from available stock."
+        confirmLabel="Approve and assign"
         loading={approveMutation.isPending}
         onConfirm={() => approveMutation.mutate()}
       />
