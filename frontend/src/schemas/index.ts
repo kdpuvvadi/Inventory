@@ -159,10 +159,10 @@ export const transactionSchema = z.object({
 
 export const bomSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  finished_product: z.string().min(1, 'Finished product is required'),
   version: z.string().min(1, 'Version is required'),
+  project: z.string().optional(),
   notes: z.string().optional(),
-  status: z.enum(['draft', 'active', 'archived']),
+  status: z.enum(['draft', 'active', 'approved', 'archived']),
 })
 
 export const bomItemSchema = z.object({

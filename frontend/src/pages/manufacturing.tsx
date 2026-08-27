@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
 import { DataTable } from '@/components/data-table/data-table'
@@ -44,148 +45,122 @@ import {
   useTypedCollectionQuery,
 } from '@/hooks/use-collection'
 import { canWrite } from '@/lib/auth'
-import pb, { COLLECTIONS } from '@/lib/pocketbase'
-import { bomItemSchema, bomSchema, type BomFormValues, type BomItemFormValues } from '@/schemas'
+import { COLLECTIONS } from '@/lib/pocketbase'
+import { bomSchema, type BomFormValues } from '@/schemas'
 import {
   createRecord,
   deleteRecord,
   updateRecord,
 } from '@/services/crud'
-import type { BomItemWithExpand, BomStatus, BomWithExpand } from '@/types'
-import { UNIT_OF_MEASURES } from '@/utils/constants'
+import { approveBom } from '@/services/inventory'
+import type { BomStatus, BomWithExpand } from '@/types'
+import { BOM_STATUSES, getLabel } from '@/utils/constants'
 
-const BOM_LIST_OPTIONS = { expand: 'finished_product', sort: '-updated' }
+const BOM_LIST_OPTIONS = { expand: 'project', sort: '-updated' }
 const BOM_QUERY_KEY = collectionQueryKey(COLLECTIONS.BOMS, BOM_LIST_OPTIONS)
 
-const BOM_STATUS_VARIANTS: Record<BomStatus, 'outline' | 'success' | 'secondary'> = {
+const BOM_STATUS_VARIANTS: Record<BomStatus, 'outline' | 'success' | 'secondary' | 'warning'> = {
   draft: 'outline',
-  active: 'success',
-  archived: 'secondary',
+  active: 'secondary',
+  approved: 'success',
+  archived: 'outline',
 }
 
 function BomStatusBadge({ status }: { status: BomStatus }) {
   return (
     <Badge variant={BOM_STATUS_VARIANTS[status]} className="capitalize">
-      {status}
+      {getLabel(BOM_STATUSES, status)}
     </Badge>
   )
 }
 
+function toBomPayload(values: BomFormValues) {
+  return {
+    ...values,
+    project: values.project || '',
+  }
+}
+
 export default function ManufacturingPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const writable = canWrite()
 
   const [bomDialogOpen, setBomDialogOpen] = useState(false)
   const [editingBom, setEditingBom] = useState<BomWithExpand | null>(null)
-  const [detailBom, setDetailBom] = useState<BomWithExpand | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<BomWithExpand | null>(null)
-  const [itemDialogOpen, setItemDialogOpen] = useState(false)
-  const [deleteItemTarget, setDeleteItemTarget] = useState<BomItemWithExpand | null>(null)
 
   useRealtimeCollection(COLLECTIONS.BOMS, BOM_QUERY_KEY)
-  useRealtimeCollection(COLLECTIONS.BOM_ITEMS)
 
   const { data: bomsData, isLoading: bomsLoading } = useTypedCollectionQuery(
     COLLECTIONS.BOMS,
     BOM_LIST_OPTIONS,
   )
 
-  const { data: productsData } = useTypedCollectionQuery(COLLECTIONS.PRODUCTS, {
+  const { data: projectsData } = useTypedCollectionQuery(COLLECTIONS.PROJECTS, {
     sort: 'name',
     perPage: 500,
-  })
-
-  const { data: bomItems = [], isLoading: itemsLoading } = useQuery({
-    queryKey: ['bom-items', detailBom?.id],
-    queryFn: () =>
-      pb.collection(COLLECTIONS.BOM_ITEMS).getFullList<BomItemWithExpand>({
-        filter: `bom = "${detailBom!.id}"`,
-        expand: 'product',
-        sort: 'created',
-      }),
-    enabled: Boolean(detailBom?.id),
   })
 
   const bomForm = useForm<BomFormValues>({
     resolver: zodResolver(bomSchema),
     defaultValues: {
       name: '',
-      finished_product: '',
       version: '1.0',
+      project: '',
       notes: '',
       status: 'draft',
     },
   })
 
-  const itemForm = useForm<BomItemFormValues>({
-    resolver: zodResolver(bomItemSchema),
-    defaultValues: {
-      bom: '',
-      product: '',
-      quantity: 1,
-      unit_of_measure: 'each',
-    },
-  })
-
   const saveBomMutation = useMutation({
     mutationFn: async (values: BomFormValues) => {
+      const payload = toBomPayload(values)
       if (editingBom) {
-        return updateRecord(COLLECTIONS.BOMS, editingBom.id, values)
+        const shouldApprove =
+          payload.status === 'approved' && editingBom.status !== 'approved'
+        const saved = await updateRecord(COLLECTIONS.BOMS, editingBom.id, {
+          ...payload,
+          status: shouldApprove ? editingBom.status : payload.status,
+        })
+        if (shouldApprove) {
+          return approveBom(editingBom.id)
+        }
+        return saved
       }
-      return createRecord(COLLECTIONS.BOMS, values)
+      return createRecord(COLLECTIONS.BOMS, {
+        ...payload,
+        status: payload.status === 'approved' ? 'draft' : payload.status,
+      })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BOM_QUERY_KEY })
+    onSuccess: (record) => {
+      queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.BOMS] })
       toast.success(editingBom ? 'BOM updated' : 'BOM created')
       closeBomDialog()
+      if (!editingBom) {
+        navigate(`/manufacturing/${record.id}`)
+      }
     },
-    onError: () => toast.error('Failed to save BOM'),
+        onError: (error) =>
+          toast.error(error instanceof Error ? error.message : 'Failed to save BOM'),
   })
 
   const deleteBomMutation = useMutation({
     mutationFn: (id: string) => deleteRecord(COLLECTIONS.BOMS, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: BOM_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['collection', COLLECTIONS.BOMS] })
       toast.success('BOM deleted')
       setDeleteTarget(null)
-      if (detailBom?.id === deleteTarget?.id) setDetailBom(null)
     },
     onError: () => toast.error('Failed to delete BOM'),
-  })
-
-  const saveItemMutation = useMutation({
-    mutationFn: (values: BomItemFormValues) =>
-      createRecord(COLLECTIONS.BOM_ITEMS, values),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bom-items', detailBom?.id] })
-      toast.success('Item added to BOM')
-      setItemDialogOpen(false)
-      itemForm.reset({
-        bom: detailBom?.id ?? '',
-        product: '',
-        quantity: 1,
-        unit_of_measure: 'each',
-      })
-    },
-    onError: () => toast.error('Failed to add BOM item'),
-  })
-
-  const deleteItemMutation = useMutation({
-    mutationFn: (id: string) => deleteRecord(COLLECTIONS.BOM_ITEMS, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bom-items', detailBom?.id] })
-      toast.success('Item removed')
-      setDeleteItemTarget(null)
-    },
-    onError: () => toast.error('Failed to remove item'),
   })
 
   const openCreateBom = () => {
     setEditingBom(null)
     bomForm.reset({
       name: '',
-      finished_product: '',
       version: '1.0',
+      project: '',
       notes: '',
       status: 'draft',
     })
@@ -196,8 +171,8 @@ export default function ManufacturingPage() {
     setEditingBom(bom)
     bomForm.reset({
       name: bom.name,
-      finished_product: bom.finished_product,
       version: bom.version,
+      project: bom.project ?? '',
       notes: bom.notes ?? '',
       status: bom.status,
     })
@@ -209,27 +184,37 @@ export default function ManufacturingPage() {
     setEditingBom(null)
   }
 
-  const openAddItem = () => {
-    itemForm.reset({
-      bom: detailBom?.id ?? '',
-      product: '',
-      quantity: 1,
-      unit_of_measure: 'each',
-    })
-    setItemDialogOpen(true)
-  }
-
   const columns: ColumnDef<BomWithExpand>[] = [
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    },
-    {
-      id: 'finished_product',
-      accessorFn: (row) => row.expand?.finished_product?.name ?? row.finished_product,
-      header: 'Finished Product',
+      cell: ({ row }) => (
+        <Link
+          to={`/manufacturing/${row.original.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.original.name}
+        </Link>
+      ),
     },
     { accessorKey: 'version', header: 'Version' },
+    {
+      id: 'project',
+      accessorFn: (row) => row.expand?.project?.name ?? '—',
+      header: 'Project',
+      cell: ({ row }) => {
+        const project = row.original.expand?.project
+        if (!project) return '—'
+        return (
+          <Link
+            to={`/projects/${project.id}`}
+            className="text-primary hover:underline"
+          >
+            {project.name}
+          </Link>
+        )
+      },
+    },
     {
       accessorKey: 'status',
       header: 'Status',
@@ -240,12 +225,8 @@ export default function ManufacturingPage() {
       header: '',
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDetailBom(row.original)}
-          >
-            View
+          <Button variant="ghost" size="sm" asChild>
+            <Link to={`/manufacturing/${row.original.id}`}>Open</Link>
           </Button>
           {writable && (
             <>
@@ -270,38 +251,11 @@ export default function ManufacturingPage() {
     },
   ]
 
-  const itemColumns: ColumnDef<BomItemWithExpand>[] = [
-    {
-      id: 'product',
-      accessorFn: (row) => row.expand?.product?.name ?? row.product,
-      header: 'Product',
-    },
-    { accessorKey: 'quantity', header: 'Quantity' },
-    { accessorKey: 'unit_of_measure', header: 'UOM' },
-    ...(writable
-      ? [
-          {
-            id: 'actions',
-            header: '',
-            cell: ({ row }: { row: { original: BomItemWithExpand } }) => (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDeleteItemTarget(row.original)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            ),
-          } as ColumnDef<BomItemWithExpand>,
-        ]
-      : []),
-  ]
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="BOM / Manufacturing"
-        description="Manage bills of materials and component lists."
+        title="BOM"
+        description="Create a BOM, add items, then approve it to consume stock."
         actions={
           writable && (
             <Button onClick={openCreateBom}>
@@ -312,21 +266,10 @@ export default function ManufacturingPage() {
         }
       />
 
-      <Card className="border-blue-500/20 bg-blue-500/5">
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Note:</strong> Automatic stock
-            consumption on production runs will be available in a future release.
-            BOMs currently serve as reference documentation for manufacturing
-            processes.
-          </p>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Bills of Materials</CardTitle>
-          <CardDescription>All BOMs with finished product references</CardDescription>
+          <CardDescription>Open a BOM to add components, export, or print</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -343,7 +286,9 @@ export default function ManufacturingPage() {
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Edit BOM' : 'Create BOM'}</DialogTitle>
             <DialogDescription>
-              Define a bill of materials for a finished product.
+              {editingBom
+                ? 'Update BOM details. Items are managed on the BOM page.'
+                : 'Create the BOM now. You can add items and quantities after it is created.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...bomForm}>
@@ -366,20 +311,26 @@ export default function ManufacturingPage() {
               />
               <FormField
                 control={bomForm.control}
-                name="finished_product"
+                name="project"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Finished Product</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Project (optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === 'none' ? '' : value)
+                      }
+                      value={field.value || 'none'}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
+                          <SelectValue placeholder="Select project" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {productsData?.items.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
+                        <SelectItem value="none">None</SelectItem>
+                        {projectsData?.items.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -415,9 +366,13 @@ export default function ManufacturingPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
+                          {BOM_STATUSES.filter(
+                            (status) => editingBom || status.value !== 'approved',
+                          ).map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -454,129 +409,6 @@ export default function ManufacturingPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(detailBom)} onOpenChange={(open) => !open && setDetailBom(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{detailBom?.name}</DialogTitle>
-            <DialogDescription>
-              {detailBom?.expand?.finished_product?.name ?? 'Finished product'} · v
-              {detailBom?.version}{' '}
-              {detailBom && <BomStatusBadge status={detailBom.status} />}
-            </DialogDescription>
-          </DialogHeader>
-
-          {detailBom?.notes && (
-            <p className="text-sm text-muted-foreground">{detailBom.notes}</p>
-          )}
-
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Components</h3>
-            {writable && (
-              <Button size="sm" onClick={openAddItem}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Item
-              </Button>
-            )}
-          </div>
-
-          <DataTable
-            columns={itemColumns}
-            data={bomItems}
-            isLoading={itemsLoading}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add BOM Item</DialogTitle>
-            <DialogDescription>Add a component to this bill of materials.</DialogDescription>
-          </DialogHeader>
-          <Form {...itemForm}>
-            <form
-              onSubmit={itemForm.handleSubmit((values) => saveItemMutation.mutate(values))}
-              className="space-y-4"
-            >
-              <FormField
-                control={itemForm.control}
-                name="product"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {productsData?.items.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={itemForm.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={itemForm.control}
-                  name="unit_of_measure"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {UNIT_OF_MEASURES.map((uom) => (
-                            <SelectItem key={uom.value} value={uom.value}>
-                              {uom.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setItemDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saveItemMutation.isPending}>
-                  {saveItemMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Add Item
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
@@ -586,17 +418,6 @@ export default function ManufacturingPage() {
         destructive
         loading={deleteBomMutation.isPending}
         onConfirm={() => deleteTarget && deleteBomMutation.mutate(deleteTarget.id)}
-      />
-
-      <ConfirmDialog
-        open={Boolean(deleteItemTarget)}
-        onOpenChange={(open) => !open && setDeleteItemTarget(null)}
-        title="Remove Item"
-        description="Remove this component from the BOM?"
-        confirmLabel="Remove"
-        destructive
-        loading={deleteItemMutation.isPending}
-        onConfirm={() => deleteItemTarget && deleteItemMutation.mutate(deleteItemTarget.id)}
       />
     </div>
   )

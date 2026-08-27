@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowLeft, Loader2, Package, Plus, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Loader2, Package, Plus, RotateCcw, Wrench } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router'
@@ -13,6 +13,7 @@ import { DataTableColumnHeader } from '@/components/data-table/data-table-column
 import { EmptyState } from '@/components/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatusBadge } from '@/components/status-badge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -47,12 +48,13 @@ import {
   returnProductFromProject,
 } from '@/services/inventory'
 import type {
+  BomWithExpand,
   Product,
   ProjectAssignmentWithExpand,
   ProjectWithExpand,
   StockTransactionWithExpand,
 } from '@/types'
-import { TRANSACTION_TYPES, getLabel } from '@/utils/constants'
+import { BOM_STATUSES, TRANSACTION_TYPES, getLabel } from '@/utils/constants'
 
 const assignSchema = z.object({
   product: z.string().min(1, 'Product is required'),
@@ -108,6 +110,20 @@ export default function ProjectDetailPage() {
     filter: 'status = "in_stock"',
     sort: 'name',
   })
+
+  const bomsOptions = useMemo(
+    () => ({
+      perPage: 100,
+      filter: id ? `project = "${id}"` : undefined,
+      sort: '-updated',
+    }),
+    [id],
+  )
+
+  const { data: bomsData, isLoading: bomsLoading } = useTypedCollectionQuery(
+    COLLECTIONS.BOMS,
+    bomsOptions,
+  )
 
   const form = useForm<AssignFormValues>({
     resolver: zodResolver(assignSchema),
@@ -310,6 +326,31 @@ export default function ProjectDetailPage() {
     },
   ]
 
+  const bomColumns: ColumnDef<BomWithExpand>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      cell: ({ row }) => (
+        <Link
+          to={`/manufacturing/${row.original.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.original.name}
+        </Link>
+      ),
+    },
+    { accessorKey: 'version', header: 'Version' },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="capitalize">
+          {getLabel(BOM_STATUSES, row.original.status)}
+        </Badge>
+      ),
+    },
+  ]
+
   if (projectLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -386,6 +427,23 @@ export default function ProjectDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Bills of Materials</h2>
+        {(bomsData?.items.length ?? 0) === 0 && !bomsLoading ? (
+          <EmptyState
+            icon={Wrench}
+            title="No BOMs"
+            description="Link a BOM to this project from the BOM page."
+          />
+        ) : (
+          <DataTable
+            columns={bomColumns}
+            data={bomsData?.items ?? []}
+            isLoading={bomsLoading}
+          />
+        )}
+      </div>
 
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Assigned Products</h2>

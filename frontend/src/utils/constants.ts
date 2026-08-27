@@ -7,6 +7,7 @@ import type {
   SerialStatus,
   TransactionType,
   UserRole,
+  BomStatus,
 } from '@/types'
 
 export interface LabeledOption<T extends string = string> {
@@ -63,6 +64,13 @@ export const PROJECT_STATUSES: LabeledOption<ProjectStatus>[] = [
   { value: 'on_hold', label: 'On Hold' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+]
+
+export const BOM_STATUSES: LabeledOption<BomStatus>[] = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'archived', label: 'Archived' },
 ]
 
 export const PO_STATUSES: LabeledOption<PurchaseOrderStatus>[] = [

@@ -16,6 +16,7 @@ import LoginPage from '@/pages/login'
 import ManufacturerDetailPage from '@/pages/manufacturer-detail'
 import ManufacturersPage from '@/pages/manufacturers'
 import ManufacturingPage from '@/pages/manufacturing'
+import ManufacturingDetailPage from '@/pages/manufacturing-detail'
 import ProductDetailPage from '@/pages/product-detail'
 import ProductFormPage from '@/pages/product-form'
 import ProductsPage from '@/pages/products'
@@ -83,6 +84,7 @@ export const router = createBrowserRouter([
       { path: 'transactions', element: <TransactionsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'manufacturing', element: <ManufacturingPage /> },
+      { path: 'manufacturing/:id', element: <ManufacturingDetailPage /> },
       {
         path: 'users',
         element: (

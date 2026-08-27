@@ -240,11 +240,12 @@ export interface AuditLog extends BaseRecord {
   new_value: unknown
 }
 
-export type BomStatus = 'draft' | 'active' | 'archived'
+export type BomStatus = 'draft' | 'active' | 'approved' | 'archived'
 
 export interface Bom extends BaseRecord {
   name: string
-  finished_product: string
+  finished_product?: string
+  project?: string
   version: string
   notes: string
   status: BomStatus
@@ -380,6 +381,7 @@ export interface AuditLogExpand {
 
 export interface BomExpand {
   finished_product?: Product
+  project?: Project
 }
 
 export interface BomItemExpand {

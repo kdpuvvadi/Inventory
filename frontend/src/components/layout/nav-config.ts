@@ -62,9 +62,9 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Manufacturing',
+    label: 'BOM',
     items: [
-      { title: 'BOM / Manufacturing', href: '/manufacturing', icon: Wrench },
+      { title: 'BOM', href: '/manufacturing', icon: Wrench },
     ],
   },
   {

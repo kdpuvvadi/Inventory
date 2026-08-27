@@ -52,10 +52,11 @@ export function formatDateTime(date: string | Date): string {
 export function downloadCsv(
   rows: Record<string, string | number | boolean | null | undefined>[],
   filename: string,
+  columns?: string[],
 ): void {
-  if (rows.length === 0) return
+  const headers = columns ?? (rows[0] ? Object.keys(rows[0]) : [])
+  if (headers.length === 0) return
 
-  const headers = Object.keys(rows[0])
   const escapeCell = (value: string | number | boolean | null | undefined): string => {
     if (value == null) return ''
     const str = String(value)
@@ -76,6 +77,26 @@ export function downloadCsv(
   link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
+}
+
+export function downloadJson(data: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json;charset=utf-8;',
+  })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = filename.endsWith('.json') ? filename : `${filename}.json`
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
+export function slugifyFilename(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || 'export'
 }
 
 export function getInitials(name: string): string {

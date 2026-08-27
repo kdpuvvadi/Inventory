@@ -1,7 +1,10 @@
 import pb, { COLLECTIONS } from '@/lib/pocketbase'
 import type {
+  Bom,
+  BomItemWithExpand,
   Inventory,
   Product,
+  ProductSerial,
   ProductStatus,
   ProjectAssignment,
   PurchaseOrder,
@@ -10,6 +13,7 @@ import type {
   StockTransaction,
   TransactionType,
   Warehouse,
+  SerialStatus,
 } from '@/types'
 import { generateBarcodeValue } from '@/utils/barcode'
 
@@ -101,9 +105,10 @@ export function productRequiresSerials(product: Product): boolean {
   return Boolean(product.track_serials)
 }
 
-function outboundSerialStatus(type: TransactionType): 'scrap' | 'sold' | 'damaged' {
+function outboundSerialStatus(type: TransactionType): SerialStatus {
   if (type === 'scrap') return 'scrap'
   if (type === 'sale') return 'sold'
+  if (type === 'consumption') return 'installed'
   return 'damaged'
 }
 
@@ -118,6 +123,7 @@ export interface AdjustStockParams {
   remarks?: string
   serials?: string[]
   serialIds?: string[]
+  serialProject?: string
 }
 
 export async function adjustStock(params: AdjustStockParams): Promise<{
@@ -210,7 +216,11 @@ export async function adjustStock(params: AdjustStockParams): Promise<{
       notes: params.remarks,
     })
   } else if (params.quantityDelta < 0 && requiresSerials && params.serialIds) {
-    await markSerialsStatus(params.serialIds, outboundSerialStatus(params.type))
+    await markSerialsStatus(
+      params.serialIds,
+      outboundSerialStatus(params.type),
+      params.serialProject ? { project: params.serialProject } : undefined,
+    )
   }
 
   return { inventory: updatedInventory, transaction }
@@ -593,4 +603,90 @@ export async function ingestOpeningStock(params: IngestOpeningStockParams): Prom
   })
 
   return { product, inventory: updatedInventory, transaction }
+}
+
+export async function approveBom(bomId: string): Promise<Bom> {
+  const bom = await pb.collection(COLLECTIONS.BOMS).getOne<Bom>(bomId)
+  if (bom.status === 'approved') {
+    return bom
+  }
+
+  const items = await pb.collection(COLLECTIONS.BOM_ITEMS).getFullList<BomItemWithExpand>({
+    filter: `bom = "${bomId}"`,
+    expand: 'product',
+  })
+
+  if (items.length === 0) {
+    throw new Error('Add at least one item before approving this BOM')
+  }
+
+  const warehouse = await getDefaultWarehouse()
+
+  const prepared: Array<{
+    item: BomItemWithExpand
+    productName: string
+    serialIds?: string[]
+  }> = []
+
+  for (const item of items) {
+    const productName = item.expand?.product?.name ?? item.product
+    const product = item.expand?.product
+      ?? (await pb.collection(COLLECTIONS.PRODUCTS).getOne<Product>(item.product))
+
+    const inventory = await findInventory(item.product, warehouse.id)
+    if (!inventory || inventory.available < item.quantity) {
+      throw new Error(
+        `Not enough stock for ${productName} in ${warehouse.name}. Need ${item.quantity}, available ${inventory?.available ?? 0}.`,
+      )
+    }
+
+    let serialIds: string[] | undefined
+    if (productRequiresSerials(product)) {
+      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+        throw new Error(
+          `${productName} is serial-tracked. Quantity must be a whole number of 1 or more.`,
+        )
+      }
+      const serials = await pb.collection(COLLECTIONS.PRODUCT_SERIALS).getFullList<ProductSerial>({
+        filter: `product = "${item.product}" && warehouse = "${warehouse.id}" && status = "available"`,
+        sort: 'serial',
+      })
+      if (serials.length < item.quantity) {
+        throw new Error(
+          `${productName} needs ${item.quantity} available serial number(s) in ${warehouse.name}, but ${serials.length} are available.`,
+        )
+      }
+      serialIds = serials.slice(0, item.quantity).map((serial) => serial.id)
+    }
+
+    prepared.push({ item, productName, serialIds })
+  }
+
+  for (const { item, productName, serialIds } of prepared) {
+    await adjustStock({
+      productId: item.product,
+      warehouseId: warehouse.id,
+      quantityDelta: -item.quantity,
+      type: 'consumption',
+      reason: `BOM approved: ${bom.name}`,
+      referenceDocument: bom.id,
+      remarks: productName,
+      serialIds,
+      serialProject: bom.project || undefined,
+    })
+  }
+
+  const updated = await pb.collection(COLLECTIONS.BOMS).update<Bom>(bom.id, {
+    status: 'approved',
+  })
+
+  await logAudit({
+    action: 'bom_approved',
+    collection: COLLECTIONS.BOMS,
+    recordId: bom.id,
+    previousValue: { status: bom.status },
+    newValue: { status: updated.status, itemsConsumed: items.length },
+  })
+
+  return updated
 }

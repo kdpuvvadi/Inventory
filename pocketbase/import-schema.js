@@ -62,6 +62,18 @@ const hasDocumentShareFields = Boolean(
     documentsCol?.fields?.some((f) => f.name === 'gst_type') &&
     documentsCol?.fields?.some((f) => f.name === 'billing_state'),
 )
+const bomsCol = existing.find((c) => c.name === 'boms')
+const hasBomProjectField = Boolean(
+  bomsCol?.fields?.some((f) => f.name === 'project'),
+)
+const hasBomApprovedStatus = Boolean(
+  bomsCol?.fields?.some(
+    (f) =>
+      f.name === 'status' &&
+      Array.isArray(f.values) &&
+      f.values.includes('approved'),
+  ),
+)
 const customersCol = existing.find((c) => c.name === 'customers')
 const hasCustomerAddressFields = Boolean(
   customersCol?.fields?.some((f) => f.name === 'state') &&
@@ -90,7 +102,9 @@ const schemaComplete =
   hasDocumentConversionFields &&
   hasDocumentShareFields &&
   hasCustomerAddressFields &&
-  hasCompanyStateFields
+  hasCompanyStateFields &&
+  hasBomProjectField &&
+  hasBomApprovedStatus
 
 if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
   console.log(
@@ -104,7 +118,7 @@ if (schemaComplete && process.env.PB_FORCE_SCHEMA_IMPORT !== 'true') {
 
 if (hasAppCollections && !schemaComplete) {
   console.log(
-    'Existing install detected — merging schema update (documents/share/address/GST)...',
+    'Existing install detected — merging schema update (documents/share/address/GST/BOM)...',
   )
 }
 

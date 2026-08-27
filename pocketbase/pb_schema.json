@@ -2332,7 +2332,24 @@
         "values": [
           "draft",
           "active",
+          "approved",
           "archived"
+        ]
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pbc_projects01",
+        "hidden": false,
+        "id": "field_project_bom",
+        "maxSelect": 1,
+        "minSelect": null,
+        "name": "project",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation",
+        "displayFields": [
+          "name"
         ]
       },
       {
